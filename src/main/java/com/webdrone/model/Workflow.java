@@ -17,8 +17,8 @@ public class Workflow extends BaseModel {
 	@Column(name = "NAME", length = 255, nullable = false)
 	private String name;
 
-	@OneToMany(mappedBy = "WORKFLOW")
-	private List<WorkflowInstance> workflowInstances = new ArrayList<WorkflowInstance>();
+	@OneToMany(mappedBy = "workflow")
+	private List<WorkflowTransition> workflowTransitions = new ArrayList<WorkflowTransition>();
 
 	public Workflow() {
 		super();
@@ -32,12 +32,12 @@ public class Workflow extends BaseModel {
 		this.name = name;
 	}
 
-	public List<WorkflowInstance> getWorkflowInstances() {
-		return workflowInstances;
+	public List<WorkflowTransition> getWorkflowTransitions() {
+		return workflowTransitions;
 	}
 
-	public void setWorkflowInstances(List<WorkflowInstance> workflowInstances) {
-		this.workflowInstances = workflowInstances;
+	public void setWorkflowTransitions(List<WorkflowTransition> workflowTransitions) {
+		this.workflowTransitions = workflowTransitions;
 	}
 
 }

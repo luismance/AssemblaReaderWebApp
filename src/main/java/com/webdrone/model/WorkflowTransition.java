@@ -8,8 +8,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "WORKFLOW_INSTANCE")
-public class WorkflowInstance extends BaseModel {
+@Table(name = "WORKFLOW_TRANSITION")
+public class WorkflowTransition extends BaseModel {
 
 	private static final long serialVersionUID = 1L;
 
@@ -26,7 +26,7 @@ public class WorkflowInstance extends BaseModel {
 	@JoinColumn(name = "WORKFLOW_ID")
 	private Workflow workflow;
 
-	public WorkflowInstance() {
+	public WorkflowTransition() {
 		super();
 	}
 
