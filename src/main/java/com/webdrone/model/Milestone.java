@@ -22,10 +22,10 @@ public class Milestone extends RemoteEntity {
 	@Column(name = "DESCRIPTION", length = 255)
 	private String description;
 
-	@Column(name = "RELEASE_NOTES", length = 65535)
+	@Column(name = "RELEASE_NOTES", length = 10000)
 	private String releaseNotes;
 
-	@Column(name = "PRETTY_RELEASE_LEVEL", length = 65535)
+	@Column(name = "PRETTY_RELEASE_LEVEL", length = 10000)
 	private String prettyReleaseLevel;
 
 	@ManyToOne(optional = false)
