@@ -1,51 +1,48 @@
-package com.webdrone.model;
+package com.webdrone.dto;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import com.webdrone.model.User;
 
-@Entity
-@Table(name = "USER")
-public class User extends BaseModel {
+@XmlRootElement(name = "user")
+public class UserDto extends BaseDto {
 
-	private static final long serialVersionUID = 1L;
-
-	@Column(name = "USERNAME", length = 255, nullable = false)
 	private String username;
 
-	@Column(name = "PASSWORD", length = 255, nullable = false)
 	private String password;
 
-	@Column(name = "EXTERNAL_REF_ID", length = 255, nullable = false)
 	private String externalRefId;
 
-	@Column(name = "BEARER_TOKEN", length = 255, nullable = false)
 	private String bearerToken;
 
-	@Column(name = "REFRESH_TOKEN", length = 255, nullable = false)
 	private String refreshToken;
 
-	@Column(name = "NAME", length = 255, nullable = false)
 	private String name;
 
-	@Column(name = "EMAIL", length = 255, nullable = false)
 	private String email;
 
-	@Column(name = "PHONE_NUM", length = 255, nullable = true)
 	private String phoneNum;
 
-	@OneToMany
-	private List<Role> userRoles = new ArrayList<Role>();
-
-	public User() {
-		super();
+	public UserDto() {
 	}
 
-	public User(String username, String password, String externalRefId, String bearerToken, String refreshToken,
+	public UserDto(User user) {
+		super();
+		this.username = user.getUsername();
+		this.password = user.getPassword();
+		this.externalRefId = user.getExternalRefId();
+		this.bearerToken = user.getBearerToken();
+		this.refreshToken = user.getRefreshToken();
+		this.name = user.getName();
+		this.email = user.getEmail();
+		this.phoneNum = user.getPhoneNum();
+		setId(user.getId());
+		setCreated(user.getDateCreated());
+		setUpdated(user.getDateUpdated());
+	}
+
+	public UserDto(String username, String password, String externalRefId, String bearerToken, String refreshToken,
 			String name, String email, String phoneNum) {
 		super();
 		this.username = username;
@@ -58,6 +55,7 @@ public class User extends BaseModel {
 		this.phoneNum = phoneNum;
 	}
 
+	@XmlElement
 	public String getUsername() {
 		return username;
 	}
@@ -66,6 +64,7 @@ public class User extends BaseModel {
 		this.username = username;
 	}
 
+	@XmlElement
 	public String getPassword() {
 		return password;
 	}
@@ -74,6 +73,7 @@ public class User extends BaseModel {
 		this.password = password;
 	}
 
+	@XmlElement
 	public String getExternalRefId() {
 		return externalRefId;
 	}
@@ -82,6 +82,7 @@ public class User extends BaseModel {
 		this.externalRefId = externalRefId;
 	}
 
+	@XmlElement
 	public String getBearerToken() {
 		return bearerToken;
 	}
@@ -90,6 +91,7 @@ public class User extends BaseModel {
 		this.bearerToken = bearerToken;
 	}
 
+	@XmlElement
 	public String getRefreshToken() {
 		return refreshToken;
 	}
@@ -98,6 +100,7 @@ public class User extends BaseModel {
 		this.refreshToken = refreshToken;
 	}
 
+	@XmlElement
 	public String getName() {
 		return name;
 	}
@@ -106,6 +109,7 @@ public class User extends BaseModel {
 		this.name = name;
 	}
 
+	@XmlElement
 	public String getEmail() {
 		return email;
 	}
@@ -114,20 +118,13 @@ public class User extends BaseModel {
 		this.email = email;
 	}
 
+	@XmlElement
 	public String getPhoneNum() {
 		return phoneNum;
 	}
 
 	public void setPhoneNum(String phoneNum) {
 		this.phoneNum = phoneNum;
-	}
-
-	public List<Role> getUserRoles() {
-		return userRoles;
-	}
-
-	public void setUserRoles(List<Role> userRoles) {
-		this.userRoles = userRoles;
 	}
 
 }
