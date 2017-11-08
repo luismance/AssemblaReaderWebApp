@@ -54,30 +54,4 @@ public class RestServices {
 		return Response.status(200).entity(response).build();
 	}
 
-	@POST
-	@Path("/user")
-	public Response createUser() {
-
-		User user = new User("luismance", "luismancepass", "externalRef", "luismancebear", "luismancerefresh",
-				"luismancename", "luismanceemail", "0101010101");
-		userService.create(user);
-
-		UserDto userDto = new UserDto(user);
-		return Response.status(200).entity(userDto).build();
-	}
-
-	@GET
-	@Path("/user/list")
-	public Response getUsers() {
-
-		List<User> users = userService.listAll(User.class);
-		List<UserDto> usersDto = new ArrayList<UserDto>();
-		for (User user : users) {
-			usersDto.add(new UserDto(user));
-		}
-
-		UserListDto userList = new UserListDto();
-		userList.setUserDtos(usersDto);
-		return Response.status(200).entity(userList).build();
-	}
 }
