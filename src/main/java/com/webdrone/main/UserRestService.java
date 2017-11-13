@@ -2,18 +2,22 @@ package com.webdrone.main;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -24,7 +28,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.webdrone.assembla.dto.UserAssemblaDto;
-import com.webdrone.dto.RefreshTokenObject;
 import com.webdrone.dto.RequestTokenObject;
 import com.webdrone.dto.UserDto;
 import com.webdrone.dto.UserListDto;
@@ -47,40 +50,30 @@ public class UserRestService {
 
 	@POST
 	@Path("/create")
-	public Response createUser(@HeaderParam("Authorization") String authorization) {
+	public Response createUser(String requestBody) {
 
 		try {
-			String response = RESTServiceUtil.sendPOST(REQUEST_ACCESS_TOKEN_URL + "", true, authorization);
-
-			ObjectMapper objMap = new ObjectMapper();
-			RefreshTokenObject rto = objMap.readValue(response, RefreshTokenObject.class);
-
-			String userDetailsEndpoint = "https://api.assembla.com/v1/user.xml";
-
-			String userDetails = RESTServiceUtil.sendGET(userDetailsEndpoint, true, "Bearer " + rto.getAccess_token());
-
-			System.out.println("User Details : " + userDetails);
-			JAXBContext jxb = JAXBContext.newInstance(UserAssemblaDto.class);
+			System.out.println("User Details : " + requestBody);
+			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
-			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userDetails));
+			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+			
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			byte[] hash = digest.digest(userDto.getPassword().getBytes(StandardCharsets.UTF_8));
+			String converted = DatatypeConverter.printHexBinary(hash);
+			
 
-			User user = new User(userAssemblaDto.getLogin(), "password", userAssemblaDto.getId(), rto.getAccess_token(),
-					"", userAssemblaDto.getName(), userAssemblaDto.getEmail(), userAssemblaDto.getPhone());
-
-			UserDto userDto = new UserDto(user);
-			userService.create(user);
+			User user = new User(userDto.getUsername(), converted, "", "access_token",
+					"", "", "", "");
+			
+			User result  =(User)userService.create(user);
+			userDto.setId(result.getId());
 			return Response.status(200).entity(userDto).build();
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (JsonParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
+		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -89,7 +82,7 @@ public class UserRestService {
 
 	@POST
 	@Path("/registerToken")
-	public Response registerToken(String requestBody) {
+	public Response registerToken(@QueryParam(value = "userId") long userId, String requestBody) {
 
 		try {
 			System.out.println("Req Body : " + requestBody);
@@ -108,19 +101,22 @@ public class UserRestService {
 
 			String userDetails = RESTServiceUtil.sendGET(userDetailsEndpoint, true, "Bearer " + rto.getAccess_token());
 
-			System.out.println("User Details : " + userDetails);
 			JAXBContext jxb = JAXBContext.newInstance(UserAssemblaDto.class);
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
 			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userDetails));
-
-			User user = new User(userAssemblaDto.getLogin(), "password", userAssemblaDto.getId(), rto.getAccess_token(),
-					rto.getRefresh_token(), userAssemblaDto.getName(), userAssemblaDto.getEmail(),
-					userAssemblaDto.getPhone());
+			
+			User user = (User) userService.find(User.class, userId); 
+			user.setExternalRefId(userAssemblaDto.getId());
+			user.setBearerToken(rto.getAccess_token());
+			user.setRefreshToken(rto.getRefresh_token());
+			user.setName(userAssemblaDto.getName());
+			user.setEmail(userAssemblaDto.getEmail());
+			user.setPhoneNum(userAssemblaDto.getPhone());
 
 			UserDto userDto = new UserDto(user);
 
-			userService.create(user);
+			userService.update(user);
 
 			System.out.println("Response " + response);
 

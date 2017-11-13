@@ -10,6 +10,8 @@ $('#loginform').click(function() {
   $(this).toggleClass('green');
 });
 
+$('#navbar').load('../navbar.html');
+
 $(document).mouseup(function(e) {
   var container = $(".login");
 

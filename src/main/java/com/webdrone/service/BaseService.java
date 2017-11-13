@@ -31,7 +31,21 @@ public class BaseService<T extends BaseModel> {
 		return query.getResultList();
 	}
 
-	public void create(Object object) {
+	public Object create(Object object) {
 		getEntityManager().persist(object);
+		
+		return object;
+	}
+	
+	public Object update(Object object) {
+		getEntityManager().merge(object);
+		
+		return object;
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public Object find(Class clazz, long id) {
+		Object result = getEntityManager().find(clazz, id);
+		return result;
 	}
 }
