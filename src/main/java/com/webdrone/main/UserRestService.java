@@ -2,9 +2,6 @@ package com.webdrone.main;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,7 +14,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.xml.bind.DatatypeConverter;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -49,8 +45,8 @@ public class UserRestService {
 	private UserService userService;
 
 	@POST
-	@Path("/create")
-	public Response createUser(String requestBody) {
+	@Path("/login")
+	public Response loginUser(String requestBody) {
 
 		try {
 			System.out.println("User Details : " + requestBody);
@@ -59,21 +55,35 @@ public class UserRestService {
 
 			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
 			
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			byte[] hash = digest.digest(userDto.getPassword().getBytes(StandardCharsets.UTF_8));
-			String converted = DatatypeConverter.printHexBinary(hash);
+			User result  =(User)userService.findUserByUsernameAndPassword(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
 			
-
-			User user = new User(userDto.getUsername(), converted, "", "access_token",
-					"", "", "", "");
-			
-			User result  =(User)userService.create(user);
-			userDto.setId(result.getId());
+			userDto = new UserDto(result);
 			return Response.status(200).entity(userDto).build();
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
+		}
+		return Response.status(500).build();
+	}
+	
+	@POST
+	@Path("/create")
+	public Response createUser(String requestBody) {
+
+		try {
+			System.out.println("User Details : " + requestBody);
+			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
+			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+
+			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));	
+
+			User user = new User(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()), "", "access_token",
+					"", "", "", "");
+			
+			User result  =(User)userService.create(user);
+			userDto.setId(result.getId());
+			return Response.status(201).entity(userDto).build();
+		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

@@ -10,11 +10,10 @@ app.controller('myCtrl', ['$scope', '$http', '$window', '$location','$sessionSto
 		var restUrl = $location.absUrl().split("register")[0] + "rest/user/create";
 		$http.post(restUrl, requestData, {headers:{'Content-Type': 'application/xml'}}).then(function (response) {
 			if (response.data)
-				console.log("Post Data Submitted Successfully!");
 				var x2js = new X2JS();
       			var aftCnv = x2js.xml_str2json(response.data);
-      			console.log("aftCnv:"+ aftCnv.user._id);
-      			$scope.userObj = aftCnv;
+      			console.log("aftCnv:"+ JSON.stringify(aftCnv));
+				console.log("Post Data Submitted Successfully!");
       			$sessionStorage.put("user",aftCnv,1);
 				$window.location.href = "https://api.assembla.com/authorization?client_id=baX24QXs4r56RcacwqjQXA&response_type=code";
 		}, function (response) {
