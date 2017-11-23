@@ -55,6 +55,10 @@ public class UserRestService {
 
 			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
 			
+			if(userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()){
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
+			}
+			
 			User result  =(User)userService.findUserByUsernameAndPassword(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
 			
 			userDto = new UserDto(result);
@@ -75,7 +79,11 @@ public class UserRestService {
 			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
-			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));	
+			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+			
+			if(userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()){
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
+			}
 
 			User user = new User(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()), "", "access_token",
 					"", "", "", "");

@@ -1,9 +1,7 @@
     #registration {
-        position: fixed; 
+        position: fixed;
         width: 100%; /* Set your desired with */
         z-index: 2; /* Make sure its above other items. */
         top: 20%;
         margin-top: 10px; /* Your width divided by 2. */
-        margin-left: 10px;
-        margin-right: 10px; /* Your width divided by 2. */
     }
