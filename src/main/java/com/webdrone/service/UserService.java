@@ -1,5 +1,7 @@
 package com.webdrone.service;
 
+import java.util.List;
+
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 
@@ -15,8 +17,19 @@ public class UserService extends BaseService<User> {
 		this.setEntityManager(em);
 	}
 
+	public User findUserByUsername(String username) {
+		List<User> listResult = getEntityManager()
+				.createQuery("SELECT u FROM " + User.class.getSimpleName() + " u WHERE u.username = '" + username + "'",
+						User.class)
+				.getResultList();
+
+		if (listResult != null && listResult.size() > 0) {
+			return listResult.get(0);
+		}
+		return null;
+	}
+
 	public User findUserByUsernameAndPassword(String username, String password) {
-		System.out.println(username+":"+password);
 		User result = (User) getEntityManager().createQuery("SELECT u FROM " + User.class.getSimpleName()
 				+ " u WHERE u.username = '" + username + "' AND u.password = '" + password + "'", User.class)
 				.getSingleResult();

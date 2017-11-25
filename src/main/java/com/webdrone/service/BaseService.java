@@ -22,12 +22,14 @@ public class BaseService<T extends BaseModel> {
 	public void setEntityManager(EntityManager entityManager) {
 		this.entityManager = entityManager;
 	}
-	
+
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Object findByExternalRefId(Class clazz, String externalRefId) {
-		Object result = getEntityManager().createQuery("SELECT u FROM " + clazz.getSimpleName()
-				+ " u WHERE u.externalRefId = '" + externalRefId + "'", clazz)
-				.getSingleResult();
+
+		List<Object> resultList = getEntityManager().createQuery(
+				"SELECT u FROM " + clazz.getSimpleName() + " u WHERE u.externalRefId = '" + externalRefId + "'", clazz)
+				.getResultList();
+		Object result = resultList != null && resultList.size() > 0 ? resultList.get(0) : null;
 		return result;
 	}
 
@@ -41,16 +43,16 @@ public class BaseService<T extends BaseModel> {
 
 	public Object create(Object object) {
 		getEntityManager().persist(object);
-		
+
 		return object;
 	}
-	
+
 	public Object update(Object object) {
 		getEntityManager().merge(object);
-		
+
 		return object;
 	}
-	
+
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public Object find(Class clazz, long id) {
 		Object result = getEntityManager().find(clazz, id);

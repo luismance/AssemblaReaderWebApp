@@ -9,6 +9,8 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import com.webdrone.assembla.dto.SpaceAssemblaDto;
+
 @Entity
 @Table(name = "SPACE")
 public class Space extends RemoteEntity {
@@ -95,6 +97,42 @@ public class Space extends RemoteEntity {
 
 	public Space() {
 		super();
+	}
+
+	public Space(SpaceAssemblaDto spaceAssemblaDto) {
+		super();
+		this.bannerHeight = spaceAssemblaDto.getBannerHeight() != null ? spaceAssemblaDto.getBannerHeight().longValue()
+				: 0;
+		this.bannerLink = spaceAssemblaDto.getBannerLink();
+		this.bannerPath = spaceAssemblaDto.getBanner();
+		this.bannerText = spaceAssemblaDto.getBannerText();
+		this.canApply = spaceAssemblaDto.isCanApply();
+		this.canJoin = spaceAssemblaDto.isCanJoin();
+		this.commercialFrom = spaceAssemblaDto.getCommercialFrom() != null ? spaceAssemblaDto.getCommercialFrom().toDate() : null;
+		this.defaultShowPage = spaceAssemblaDto.getDefaultShowpage();
+		this.description = spaceAssemblaDto.getDescription();
+		this.isApproved = spaceAssemblaDto.isApproved();
+		this.isCommercial = spaceAssemblaDto.isCommercial();
+		this.isManager = spaceAssemblaDto.isManager();
+		this.isRestricted = spaceAssemblaDto.isRestricted();
+		this.isVolunteer = spaceAssemblaDto.isVolunteer();
+		this.lastPayerChangedAt = spaceAssemblaDto.getLastPayerChangedAt() != null
+				? spaceAssemblaDto.getLastPayerChangedAt().toDate() : null;
+		// this.parentSpace = spaceAssemblaDto.getParentId();
+		this.publicPermissions = spaceAssemblaDto.getPublicPermissions();
+		this.restrictedDate = spaceAssemblaDto.getRestrictedDate() != null
+				? spaceAssemblaDto.getRestrictedDate().toDate() : null;
+		this.status = spaceAssemblaDto.getStatus();
+		this.style = spaceAssemblaDto.getStyle();
+		this.tabsOrder = spaceAssemblaDto.getTabsOrder();
+		this.teamPermissions = spaceAssemblaDto.getTeamPermissions();
+		this.teamTabRole = spaceAssemblaDto.getTeamTabRole();
+		this.watcherPermissions = spaceAssemblaDto.getWatcherPermissions();
+		this.wikiname = spaceAssemblaDto.getWikiName();
+		this.setExternalRefId(spaceAssemblaDto.getId());
+		this.setRemotelyCreated(spaceAssemblaDto.getCreatedAt()!= null ? spaceAssemblaDto.getCreatedAt().toDate() : new Date());
+		this.setRemotelyUpdated(spaceAssemblaDto.getUpdatedAt()!= null ? spaceAssemblaDto.getUpdatedAt().toDate() : new Date());
+		
 	}
 
 	public String getDescription() {

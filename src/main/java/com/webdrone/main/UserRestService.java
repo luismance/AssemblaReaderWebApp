@@ -5,6 +5,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.ejb.EJBException;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -40,7 +41,6 @@ public class UserRestService {
 
 	private static String REQUEST_ACCESS_TOKEN_URL = "https://baX24QXs4r56RcacwqjQXA:040301aea16521d342ed8de1b9d12c9d@api.assembla.com/token?grant_type=refresh_token&refresh_token=";
 
-
 	@Inject
 	private UserService userService;
 
@@ -54,22 +54,31 @@ public class UserRestService {
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
 			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
-			
-			if(userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()){
-				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
+
+			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!")
+						.build();
 			}
-			
-			User result  =(User)userService.findUserByUsernameAndPassword(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
-			
-			userDto = new UserDto(result);
-			return Response.status(200).entity(userDto).build();
+
+			User result = (User) userService.findUserByUsernameAndPassword(userDto.getUsername(),
+					RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
+
+			if (result != null) {
+				userDto = new UserDto(result);
+				return Response.status(200).entity(userDto).build();
+			} else {
+				return Response.status(500).entity("Username not found!").build();
+			}
+
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (EJBException e) {
+			return Response.status(500).entity("Username not found!").build();
 		}
-		return Response.status(500).build();
+		return Response.status(500).entity("Username not found!").build();
 	}
-	
+
 	@POST
 	@Path("/create")
 	public Response createUser(String requestBody) {
@@ -80,15 +89,19 @@ public class UserRestService {
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
 			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
-			
-			if(userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()){
-				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
+
+			if (userService.findUserByUsername(userDto.getUsername()) != null) {
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username already used!").build();
+			}
+			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!")
+						.build();
 			}
 
-			User user = new User(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()), "", "access_token",
-					"", "", "", "");
-			
-			User result  =(User)userService.create(user);
+			User user = new User(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()), "",
+					"access_token", "", "", "", "");
+
+			User result = (User) userService.create(user);
 			userDto.setId(result.getId());
 			return Response.status(201).entity(userDto).build();
 		} catch (JAXBException e) {
@@ -123,8 +136,8 @@ public class UserRestService {
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
 			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userDetails));
-			
-			User user = (User) userService.find(User.class, userId); 
+
+			User user = (User) userService.find(User.class, userId);
 			user.setExternalRefId(userAssemblaDto.getId());
 			user.setBearerToken(rto.getAccess_token());
 			user.setRefreshToken(rto.getRefresh_token());

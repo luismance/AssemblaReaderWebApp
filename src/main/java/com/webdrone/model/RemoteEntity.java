@@ -3,11 +3,11 @@ package com.webdrone.model;
 import java.util.Date;
 
 import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import javax.persistence.MappedSuperclass;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-@Embeddable
+@MappedSuperclass
 public class RemoteEntity extends BaseModel {
 
 	private static final long serialVersionUID = 1L;
@@ -19,14 +19,14 @@ public class RemoteEntity extends BaseModel {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date remotelyCreated = new Date();
 
-	@Column(name = "REMOTELY_CREATED")
+	@Column(name = "REMOTELY_UPDATED")
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date remotelyUpdated = new Date();
 
-	public RemoteEntity(){
+	public RemoteEntity() {
 		super();
 	}
-	
+
 	public String getExternalRefId() {
 		return externalRefId;
 	}
