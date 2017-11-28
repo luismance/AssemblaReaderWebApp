@@ -1,8 +1,6 @@
 package com.webdrone.main;
 
 import java.io.StringReader;
-import java.nio.charset.Charset;
-import java.util.Base64;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -21,10 +19,10 @@ import javax.xml.bind.ValidationEventHandler;
 import com.webdrone.assembla.dto.SpaceAssemblaDto;
 import com.webdrone.assembla.dto.SpaceListAssemblaDto;
 import com.webdrone.model.Space;
-import com.webdrone.model.User;
 import com.webdrone.service.SpaceService;
 import com.webdrone.service.UserService;
 import com.webdrone.util.RESTServiceUtil;
+import com.webdrone.util.UserAuthResult;
 
 @Path("/space")
 @Produces(MediaType.APPLICATION_XML)
@@ -42,21 +40,28 @@ public class SpaceRestService {
 	public Response getSpaces(@HeaderParam("Authorization") String authorization) {
 
 		try {
-			authorization = authorization.split("Basic ")[1];
-			String credentials = new String(Base64.getDecoder().decode(authorization), Charset.forName("UTF-8"));
-			// credentials = username:password
-			final String[] values = credentials.split(":", 2);
+			UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
-			User user = userService.findUserByUsernameAndPassword(values[0], values[1]);
-			if (user == null) {
-				return Response.status(500).entity("Username not found!").build();
+			if (valResult.getResponseCode() != 200) {
+				return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 			}
 
 			String spacesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces.xml", true,
-					"Bearer " + user.getBearerToken());
+					"Bearer " + valResult.getUser().getBearerToken());
 
-			System.out.println("Spaces XML : "+spacesXml);
-			
+			System.out.println("Spaces XML : " + spacesXml);
+
+			if (spacesXml.equals("401")) {
+
+				System.out.println("Spaces XML 401 : " + spacesXml);
+
+				RESTServiceUtil.refreshBearerToken(valResult.getUser());
+
+				spacesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces.xml", true,
+						"Bearer " + valResult.getUser().getBearerToken());
+				userService.update(valResult.getUser());
+
+			}
 			JAXBContext jxb = JAXBContext.newInstance(SpaceListAssemblaDto.class);
 
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
@@ -69,11 +74,12 @@ public class SpaceRestService {
 
 			SpaceListAssemblaDto spaceListAssemblaDto = (SpaceListAssemblaDto) unmarshaller
 					.unmarshal(new StringReader(spacesXml));
-			System.out.println("Space List Size : " + spaceListAssemblaDto.getSpaceDtos().size());
+
 			for (SpaceAssemblaDto spaceAssemblaDto : spaceListAssemblaDto.getSpaceDtos()) {
 				Object resultSpace = spaceService.findByExternalRefId(Space.class, spaceAssemblaDto.getId());
 				Space currentSpace = resultSpace != null ? ((Space) resultSpace) : null;
-				Object resultParentSpace = spaceService.findByExternalRefId(Space.class,spaceAssemblaDto.getParentId());
+				Object resultParentSpace = spaceService.findByExternalRefId(Space.class,
+						spaceAssemblaDto.getParentId());
 				Space parentSpace = resultParentSpace != null ? ((Space) resultParentSpace) : null;
 				if (currentSpace == null) {
 					Space newSpace = new Space(spaceAssemblaDto);
@@ -83,25 +89,30 @@ public class SpaceRestService {
 					spaceService.create(new Space(spaceAssemblaDto));
 				} else {
 					currentSpace.setApproved(spaceAssemblaDto.isApproved());
-					currentSpace.setBannerHeight(spaceAssemblaDto.getBannerHeight().longValue());
+					currentSpace.setBannerHeight(spaceAssemblaDto.getBannerHeight() != null
+							? spaceAssemblaDto.getBannerHeight().longValue() : 0);
 					currentSpace.setBannerLink(spaceAssemblaDto.getBannerLink());
 					currentSpace.setBannerPath(spaceAssemblaDto.getBanner());
 					currentSpace.setBannerText(spaceAssemblaDto.getBannerText());
 					currentSpace.setCanApply(spaceAssemblaDto.isCanApply());
 					currentSpace.setCanJoin(spaceAssemblaDto.isCanJoin());
 					currentSpace.setCommercial(spaceAssemblaDto.isCommercial());
-					currentSpace.setCommercialFrom(spaceAssemblaDto.getCommercialFrom().toDate());
+					currentSpace.setCommercialFrom(spaceAssemblaDto.getCommercialFrom() != null
+							? spaceAssemblaDto.getCommercialFrom().toDate() : null);
 					currentSpace.setDefaultShowPage(spaceAssemblaDto.getDefaultShowpage());
 					currentSpace.setDescription(spaceAssemblaDto.getDescription());
 					currentSpace.setExternalRefId(spaceAssemblaDto.getId());
-					currentSpace.setLastPayerChangedAt(spaceAssemblaDto.getLastPayerChangedAt().toDate());
+					currentSpace.setLastPayerChangedAt(spaceAssemblaDto.getLastPayerChangedAt() != null
+							? spaceAssemblaDto.getLastPayerChangedAt().toDate() : null);
 					currentSpace.setManager(spaceAssemblaDto.isManager());
 					if (parentSpace != null) {
 						currentSpace.setParentSpace(parentSpace);
 					}
 					currentSpace.setPublicPermissions(spaceAssemblaDto.getPublicPermissions());
-					currentSpace.setRemotelyCreated(spaceAssemblaDto.getCreatedAt().toDate());
-					currentSpace.setRemotelyUpdated(spaceAssemblaDto.getUpdatedAt().toDate());
+					currentSpace.setRemotelyCreated(
+							spaceAssemblaDto.getCreatedAt() != null ? spaceAssemblaDto.getCreatedAt().toDate() : null);
+					currentSpace.setRemotelyUpdated(
+							spaceAssemblaDto.getUpdatedAt() != null ? spaceAssemblaDto.getUpdatedAt().toDate() : null);
 					currentSpace.setRestricted(spaceAssemblaDto.isRestricted());
 					currentSpace.setRestrictedDate(spaceAssemblaDto.getRestrictedDate().toDate());
 					currentSpace.setStatus(spaceAssemblaDto.getStatus());

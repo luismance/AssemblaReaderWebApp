@@ -10,6 +10,8 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import com.webdrone.assembla.dto.TicketAssemblaDto;
+
 @Entity
 @Table(name = "TICKET")
 public class Ticket extends RemoteEntity {
@@ -79,10 +81,34 @@ public class Ticket extends RemoteEntity {
 	@JoinColumn(name = "WORKFLOW_ID", nullable = false)
 	private Workflow workflow;
 
-	public Ticket(){
+	public Ticket() {
 		super();
 	}
-	
+
+	public Ticket(TicketAssemblaDto ticketAssemblaDto, Milestone milestone, User reporter, User assignedTo,
+			Workflow workflow) {
+		super();
+		this.ticketNumber = ticketAssemblaDto.getNumber();
+		this.summary = ticketAssemblaDto.getSummary();
+		this.description = ticketAssemblaDto.getDescription();
+		this.status = ticketAssemblaDto.getStatus();
+		this.priorityTypeId = ticketAssemblaDto.getPriority();
+		this.totalWorkingHours = ticketAssemblaDto.getTotalWorkingHours();
+		this.isStory = ticketAssemblaDto.isStory();
+		this.storyImportance = ticketAssemblaDto.getStoryImportance();
+		this.totalInvestedHours = ticketAssemblaDto.getTotalInvestedHours();
+		this.totalEstimate = ticketAssemblaDto.getTotalEstimate();
+		this.workingHours = ticketAssemblaDto.getWorkingHours();
+		this.importance = ticketAssemblaDto.getImportance();
+		this.completedDate = ticketAssemblaDto.getCompletedDate() != null
+				? ticketAssemblaDto.getCompletedDate().toDate() : null;
+
+		this.milestone = milestone;
+		this.reporter = reporter;
+		this.assignedTo = assignedTo;
+		this.workflow = workflow;
+	}
+
 	public Space getSpace() {
 		return space;
 	}

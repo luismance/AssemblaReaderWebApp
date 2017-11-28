@@ -42,7 +42,7 @@ function loginForm(props){
       React.createElement('div' , {className:'col-sm-6'}, React.createElement(formButton , { label : 'Login', buttonType : 'button', functionCall : loginUser})),
       React.createElement('div' , {className:'col-sm-6'}, 'Not Registered?',
         React.createElement('a' , {'href':'/AssemblaReader/registration.html'},
-          React.createElement('abbr', {}, 'Create Account')
+          React.createElement('abbr', {}, 'Register with Assembla')
           )
         )
       )

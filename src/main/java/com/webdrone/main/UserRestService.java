@@ -39,8 +39,6 @@ public class UserRestService {
 
 	private static String REQUEST_REFRESH_TOKEN_URL = "https://api.assembla.com/token?grant_type=authorization_code&code=";
 
-	private static String REQUEST_ACCESS_TOKEN_URL = "https://baX24QXs4r56RcacwqjQXA:040301aea16521d342ed8de1b9d12c9d@api.assembla.com/token?grant_type=refresh_token&refresh_token=";
-
 	@Inject
 	private UserService userService;
 
@@ -116,7 +114,6 @@ public class UserRestService {
 	public Response registerToken(@QueryParam(value = "userId") long userId, String requestBody) {
 
 		try {
-			System.out.println("Req Body : " + requestBody);
 
 			String authorizationToken = "Basic " + new String(
 					Base64.encodeBase64("baX24QXs4r56RcacwqjQXA:040301aea16521d342ed8de1b9d12c9d".getBytes()));
@@ -148,8 +145,6 @@ public class UserRestService {
 			UserDto userDto = new UserDto(user);
 
 			userService.update(user);
-
-			System.out.println("Response " + response);
 
 			return Response.status(200).entity(userDto).build();
 		} catch (JsonParseException e) {
