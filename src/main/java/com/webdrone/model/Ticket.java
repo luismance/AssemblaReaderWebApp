@@ -5,6 +5,7 @@ import java.util.Date;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -28,7 +29,8 @@ public class Ticket extends RemoteEntity {
 	@Column(name = "SUMMARY", length = 255)
 	private String summary;
 
-	@Column(name = "DESCRIPTION", length = 255)
+	@Lob
+	@Column(name = "DESCRIPTION", length = 2000)
 	private String description;
 
 	@Column(name = "STATUS", length = 255)
@@ -50,8 +52,8 @@ public class Ticket extends RemoteEntity {
 	@Column(name = "IS_STORY")
 	private boolean isStory;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "REPORTER_ID", nullable = false)
+	@ManyToOne(optional = true)
+	@JoinColumn(name = "REPORTER_ID")
 	private User reporter;
 
 	@ManyToOne
@@ -77,15 +79,15 @@ public class Ticket extends RemoteEntity {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date completedDate;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "WORKFLOW_ID", nullable = false)
+	@ManyToOne(optional = true)
+	@JoinColumn(name = "WORKFLOW_ID", nullable = true)
 	private Workflow workflow;
 
 	public Ticket() {
 		super();
 	}
 
-	public Ticket(TicketAssemblaDto ticketAssemblaDto, Milestone milestone, User reporter, User assignedTo,
+	public Ticket(TicketAssemblaDto ticketAssemblaDto, Space space, Milestone milestone, User reporter, User assignedTo,
 			Workflow workflow) {
 		super();
 		this.ticketNumber = ticketAssemblaDto.getNumber();
@@ -102,11 +104,16 @@ public class Ticket extends RemoteEntity {
 		this.importance = ticketAssemblaDto.getImportance();
 		this.completedDate = ticketAssemblaDto.getCompletedDate() != null
 				? ticketAssemblaDto.getCompletedDate().toDate() : null;
-
+		this.space = space;
 		this.milestone = milestone;
 		this.reporter = reporter;
 		this.assignedTo = assignedTo;
 		this.workflow = workflow;
+		this.setExternalRefId(ticketAssemblaDto.getId());
+		this.setRemotelyCreated(
+				ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : new Date());
+		this.setRemotelyUpdated(
+				ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : new Date());
 	}
 
 	public Space getSpace() {

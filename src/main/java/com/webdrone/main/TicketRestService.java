@@ -68,6 +68,8 @@ public class TicketRestService {
 					+ "/tickets.xml?per_page=" + ticketsPerPage, true,
 					"Bearer " + valResult.getUser().getBearerToken());
 
+			System.out.println("Tickets XML : " + ticketsXml);
+			
 			JAXBContext jxb = JAXBContext.newInstance(TicketListAssemblaDto.class);
 
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
@@ -115,7 +117,7 @@ public class TicketRestService {
 					// currentTicket.setWorkflow(workflow);
 					currentTicket.setWorkingHours(ticketAssemblaDto.getWorkingHours());
 				} else {
-					currentTicket = new Ticket(ticketAssemblaDto, null, reporter, assignedTo, null);
+					currentTicket = new Ticket(ticketAssemblaDto, space, null, reporter, assignedTo, null);
 					ticketService.create(currentTicket);
 				}
 			}

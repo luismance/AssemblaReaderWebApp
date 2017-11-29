@@ -127,7 +127,7 @@ public class SpaceRestService {
 				}
 			}
 
-			return Response.status(200).entity(spacesXml).build();
+			return Response.status(200).entity(spaceListAssemblaDto).build();
 		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

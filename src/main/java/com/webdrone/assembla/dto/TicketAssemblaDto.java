@@ -136,7 +136,7 @@ public class TicketAssemblaDto {
 		this.createdOn = createdOn;
 	}
 
-	@XmlElement(name="persmission-type")
+	@XmlElement(name="permission-type")
 	public int getPermissionType() {
 		return permissionType;
 	}
