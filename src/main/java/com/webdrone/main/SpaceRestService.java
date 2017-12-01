@@ -49,11 +49,7 @@ public class SpaceRestService {
 			String spacesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces.xml", true,
 					"Bearer " + valResult.getUser().getBearerToken());
 
-			System.out.println("Spaces XML : " + spacesXml);
-
 			if (spacesXml.equals("401")) {
-
-				System.out.println("Spaces XML 401 : " + spacesXml);
 
 				RESTServiceUtil.refreshBearerToken(valResult.getUser());
 
@@ -68,7 +64,9 @@ public class SpaceRestService {
 
 			unmarshaller.setEventHandler(new ValidationEventHandler() {
 				public boolean handleEvent(ValidationEvent event) {
-					throw new RuntimeException(event.getMessage(), event.getLinkedException());
+					if(event.getMessage().contains("unexpected element"))
+			            return true;
+			        return false;
 				}
 			});
 

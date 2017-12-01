@@ -20,9 +20,7 @@ var loginUser = function(){
     success: function(data){
       var x2js = new X2JS();
       var userJson = x2js.xml_str2json(data);
-      console.log("Login Response XML: " + JSON.stringify(data));
       sessionStorage.setItem("userData", JSON.stringify(userJson));
-      console.log("Login Response JSON : " + JSON.stringify(userJson));
       window.location.href = "/AssemblaReader/index.html";
     },
     error: function(data){

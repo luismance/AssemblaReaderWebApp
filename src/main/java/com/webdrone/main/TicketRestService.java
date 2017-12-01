@@ -44,7 +44,7 @@ public class TicketRestService {
 
 	@GET
 	@Path("/list")
-	public Response getTickets(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") long spaceId,
+	public Response getTickets(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId,
 			@QueryParam("per_page") int ticketsPerPage) {
 
 		if(ticketsPerPage == 0){
@@ -56,7 +56,7 @@ public class TicketRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		Object obj = spaceService.find(Space.class, spaceId);
+		Object obj = spaceService.findByExternalRefId(Space.class, spaceId);
 		Space space = obj != null ? (Space) obj : null;
 
 		if (space == null) {
@@ -122,7 +122,7 @@ public class TicketRestService {
 				}
 			}
 
-			return Response.status(200).entity(ticketsXml).build();
+			return Response.status(200).entity(ticketListAssemblaDto).build();
 
 		} catch (JAXBException e) {
 			e.printStackTrace();

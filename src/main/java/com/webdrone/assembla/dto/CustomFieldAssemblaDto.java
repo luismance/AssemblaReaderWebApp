@@ -16,7 +16,7 @@ public class CustomFieldAssemblaDto {
 	
 	private String redmine;
 
-	@XmlElement(name="type")
+	@XmlElement(name="type", defaultValue="None")
 	public String getType() {
 		return type;
 	}
