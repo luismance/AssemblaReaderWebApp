@@ -22,7 +22,6 @@ class TicketList extends React.Component {
   }
 
   render() {
-    console.log("Tickets : " + JSON.stringify(this.props.tickets));
     const listItems = this.props.tickets.map((ticket, i) => <li className="list-group-item d-flex justify-content-between align-items-center" key={ticket.id}>{ticket.summary}<span className="badge badge-primary badge-pill">{ ticket.number }</span></li> );
     return ( <ul className="list-group"><div id="ticketDiv" style={{marginTop: '10px'}}>{listItems}</div></ul> );
   }
@@ -69,15 +68,19 @@ class SpaceList extends React.Component {
       thisComp.setState({ spaces });
 
       var currentSpaceId = getURLParameter('space_id');
+      console.log("Current Space ID : "+ currentSpaceId);
       if(!currentSpaceId){
-        currentSpaceId = thisComp.state.spaces[0].id;
+      var currentSpaceId = thisComp.state.spaces[0].id;
       }
+
+
       thisComp.setState({ currentSpaceId });
       thisComp.updateTickets();
     });
   }
 
   updateTickets(){
+
     var thisComp = this;
 
     var userData = sessionStorage.getItem("userData");
@@ -86,23 +89,27 @@ class SpaceList extends React.Component {
 
     var x2js = new X2JS();
 
+    var perPage = getURLParameter('per_page');
+
+    if(!perPage || (perPage != 10 && perPage != 15 && perPage != 20)){
+      perPage = 10;
+    }
     if(thisComp.state.currentSpaceId){
+      var urlRequest = "rest/ticket/list?space_id="+ thisComp.state.currentSpaceId + "&per_page=" + perPage;
+
       $.ajax({
         type: "GET",
-        url: "rest/ticket/list?space_id="+ thisComp.state.currentSpaceId,
+        url: urlRequest,
         headers: {
           "Content-Type" : "application/xml",
           "Authorization" : "Basic "+ Base64.encode(userItem.user.username +":"+userItem.user.password)
         },
         dataType: 'text',
-        success: function(data){
-
-        },
         error: function(data){
           console.log("Error : " + JSON.stringify(data));
         }
       }).done(function(data){
-        console.log("Tickets  1 : " + JSON.stringify(data));
+        console.log("Update Tickets");
         var ticketsJson = x2js.xml_str2json(data);
         const tickets = ticketsJson.tickets.ticket.map(obj => obj);
         thisComp.setState({ tickets });
@@ -113,24 +120,92 @@ class SpaceList extends React.Component {
   }
 
   updateSpace(currentSpaceId){
-    console.log("Update Space");
+    console.log("Selected Space");
     this.setState({currentSpaceId});
     this.updateTickets();
   }
 
   render() {
-    const listItems = this.state.spaces.map((space, i) => <li className="nav-item " key={space.id} onClick={() => this.updateSpace(space.id)}><a  className={"nav-link " + (this.state.currentSpaceId === space.id ? 'active' : '')}>{space.name}</a></li> );
-    return ( <div><ul className="nav nav-tabs">{listItems}</ul> <TicketList tickets={this.state.tickets}/> </div>);
-  }
+    var spaceList = this.state.spaces.map(
+      (space, i) =>
+      //<li className="nav-item " key={space.id} onClick={this.updateSpace.bind(this, space.id)}>
+      <li className="nav-item " key={space.id}>
+      <a  href={"/AssemblaReader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? 'active' : '')}>
+      { space.name }
+      </a>
+      </li> );
 
-}
+      var displayPerPage =
+      <div className="dropdown">
+        <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Tickets per page
+        </button>
+        <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>10</a>
+          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>15</a>
+          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>20</a>
+        </div>
+      </div>;
+
+      var ticketList = this.state.tickets.map(
+        (ticket, i) =>
+        <li className="list-group-item d-flex justify-content-between align-items-center" key={ticket.id}>
+        { ticket.summary }
+        <span className="badge badge-primary badge-pill">
+        { ticket.number }
+        </span>
+        </li> );
+
+        var ticketPagination =
+        <nav aria-label="Page navigation example">
+          <ul className="pagination">
+            <li className="page-item">
+              <a className="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+                <span className="sr-only">Previous</span>
+              </a>
+            </li>
+            <li className="page-item"><a className="page-link" href="#">1</a></li>
+            <li className="page-item"><a className="page-link" href="#">2</a></li>
+            <li className="page-item"><a className="page-link" href="#">3</a></li>
+            <li className="page-item">
+              <a className="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+                <span className="sr-only">Next</span>
+              </a>
+            </li>
+          </ul>
+        </nav>;
 
 
 
-function indexPage(props){
-  return React.createElement('div', {className : 'container-fluid', 'id' : 'spaces' },
-  React.createElement('h3', {}, 'Spaces'),
-  React.createElement(SpaceList));
-}
+        return (
+          <div>
+            <div>
+              <ul className="nav nav-tabs">{spaceList}</ul>
+            </div>
 
-ReactDOM.render(React.createElement(indexPage),document.getElementById('app'));
+            {displayPerPage}
+
+            <ul className="list-group">
+              <div id="ticketDiv" style={{marginTop: '10px'}}>
+                {ticketList}
+              </div>
+            </ul>
+
+            {ticketPagination}
+          </div>
+        );
+      }
+
+    }
+
+
+
+    function indexPage(props){
+      return React.createElement('div', {className : 'container-fluid', 'id' : 'spaces' },
+      React.createElement('h3', {}, 'Spaces'),
+      React.createElement(SpaceList));
+    }
+
+    ReactDOM.render(React.createElement(indexPage),document.getElementById('app'));

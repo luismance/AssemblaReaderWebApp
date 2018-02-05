@@ -56,6 +56,8 @@ public class TicketAssemblaDto {
 
 	private String assignedToId;
 
+	private String asssignedToName;
+
 	private String reporterId;
 
 	private CustomFieldAssemblaDto customFields;
@@ -64,7 +66,9 @@ public class TicketAssemblaDto {
 
 	private DateTime dueDate;
 
-	@XmlElement(name="id")
+	private String pictureUrl;
+
+	@XmlElement(name = "id")
 	public String getId() {
 		return id;
 	}
@@ -73,7 +77,7 @@ public class TicketAssemblaDto {
 		this.id = id;
 	}
 
-	@XmlElement(name="number")
+	@XmlElement(name = "number")
 	public int getNumber() {
 		return number;
 	}
@@ -82,7 +86,7 @@ public class TicketAssemblaDto {
 		this.number = number;
 	}
 
-	@XmlElement(name="summary")
+	@XmlElement(name = "summary")
 	public String getSummary() {
 		return summary;
 	}
@@ -91,7 +95,7 @@ public class TicketAssemblaDto {
 		this.summary = summary;
 	}
 
-	@XmlElement(name="description")
+	@XmlElement(name = "description")
 	public String getDescription() {
 		return description;
 	}
@@ -100,7 +104,7 @@ public class TicketAssemblaDto {
 		this.description = description;
 	}
 
-	@XmlElement(name="priority")
+	@XmlElement(name = "priority")
 	public int getPriority() {
 		return priority;
 	}
@@ -109,7 +113,7 @@ public class TicketAssemblaDto {
 		this.priority = priority;
 	}
 
-	@XmlElement(name="completed-date")
+	@XmlElement(name = "completed-date")
 	public DateTime getCompletedDate() {
 		return completedDate;
 	}
@@ -117,8 +121,8 @@ public class TicketAssemblaDto {
 	public void setCompletedDate(DateTime completedDate) {
 		this.completedDate = completedDate;
 	}
-	
-	@XmlElement(name="component-id")
+
+	@XmlElement(name = "component-id")
 	public String getComponentId() {
 		return componentId;
 	}
@@ -127,7 +131,7 @@ public class TicketAssemblaDto {
 		this.componentId = componentId;
 	}
 
-	@XmlElement(name="created-on")
+	@XmlElement(name = "created-on")
 	public DateTime getCreatedOn() {
 		return createdOn;
 	}
@@ -136,7 +140,7 @@ public class TicketAssemblaDto {
 		this.createdOn = createdOn;
 	}
 
-	@XmlElement(name="permission-type")
+	@XmlElement(name = "permission-type")
 	public int getPermissionType() {
 		return permissionType;
 	}
@@ -145,7 +149,7 @@ public class TicketAssemblaDto {
 		this.permissionType = permissionType;
 	}
 
-	@XmlElement(name="importance")
+	@XmlElement(name = "importance")
 	public float getImportance() {
 		return importance;
 	}
@@ -154,7 +158,7 @@ public class TicketAssemblaDto {
 		this.importance = importance;
 	}
 
-	@XmlElement(name="is-story")
+	@XmlElement(name = "is-story")
 	public boolean isStory() {
 		return story;
 	}
@@ -163,7 +167,7 @@ public class TicketAssemblaDto {
 		this.story = story;
 	}
 
-	@XmlElement(name="milestone-id")
+	@XmlElement(name = "milestone-id")
 	public String getMilestoneId() {
 		return milestoneId;
 	}
@@ -172,7 +176,7 @@ public class TicketAssemblaDto {
 		this.milestoneId = milestoneId;
 	}
 
-	@XmlElement(name="notification-list")
+	@XmlElement(name = "notification-list")
 	public String getNotificationList() {
 		return notificationList;
 	}
@@ -181,7 +185,7 @@ public class TicketAssemblaDto {
 		this.notificationList = notificationList;
 	}
 
-	@XmlElement(name="space-id")
+	@XmlElement(name = "space-id")
 	public String getSpaceId() {
 		return spaceId;
 	}
@@ -190,7 +194,7 @@ public class TicketAssemblaDto {
 		this.spaceId = spaceId;
 	}
 
-	@XmlElement(name="state")
+	@XmlElement(name = "state")
 	public int getState() {
 		return state;
 	}
@@ -199,7 +203,7 @@ public class TicketAssemblaDto {
 		this.state = state;
 	}
 
-	@XmlElement(name="status")
+	@XmlElement(name = "status")
 	public String getStatus() {
 		return status;
 	}
@@ -208,7 +212,7 @@ public class TicketAssemblaDto {
 		this.status = status;
 	}
 
-	@XmlElement(name="story-importance")
+	@XmlElement(name = "story-importance")
 	public int getStoryImportance() {
 		return storyImportance;
 	}
@@ -217,7 +221,7 @@ public class TicketAssemblaDto {
 		this.storyImportance = storyImportance;
 	}
 
-	@XmlElement(name="updated-at")
+	@XmlElement(name = "updated-at")
 	public DateTime getUpdatedAt() {
 		return updatedAt;
 	}
@@ -226,7 +230,7 @@ public class TicketAssemblaDto {
 		this.updatedAt = updatedAt;
 	}
 
-	@XmlElement(name="working-hours")
+	@XmlElement(name = "working-hours")
 	public float getWorkingHours() {
 		return workingHours;
 	}
@@ -235,7 +239,7 @@ public class TicketAssemblaDto {
 		this.workingHours = workingHours;
 	}
 
-	@XmlElement(name="estimate")
+	@XmlElement(name = "estimate")
 	public float getEstimate() {
 		return estimate;
 	}
@@ -244,7 +248,7 @@ public class TicketAssemblaDto {
 		this.estimate = estimate;
 	}
 
-	@XmlElement(name="total-estimate")
+	@XmlElement(name = "total-estimate")
 	public float getTotalEstimate() {
 		return totalEstimate;
 	}
@@ -253,7 +257,7 @@ public class TicketAssemblaDto {
 		this.totalEstimate = totalEstimate;
 	}
 
-	@XmlElement(name="total-invested-hours")
+	@XmlElement(name = "total-invested-hours")
 	public float getTotalInvestedHours() {
 		return totalInvestedHours;
 	}
@@ -262,7 +266,7 @@ public class TicketAssemblaDto {
 		this.totalInvestedHours = totalInvestedHours;
 	}
 
-	@XmlElement(name="total-working-hours")
+	@XmlElement(name = "total-working-hours")
 	public float getTotalWorkingHours() {
 		return totalWorkingHours;
 	}
@@ -271,7 +275,7 @@ public class TicketAssemblaDto {
 		this.totalWorkingHours = totalWorkingHours;
 	}
 
-	@XmlElement(name="assigned-to-id")
+	@XmlElement(name = "assigned-to-id")
 	public String getAssignedToId() {
 		return assignedToId;
 	}
@@ -280,7 +284,16 @@ public class TicketAssemblaDto {
 		this.assignedToId = assignedToId;
 	}
 
-	@XmlElement(name="reporter-id")
+	@XmlElement(name = "assigned-to-name")
+	public String getAsssignedToName() {
+		return asssignedToName;
+	}
+
+	public void setAsssignedToName(String asssignedToName) {
+		this.asssignedToName = asssignedToName;
+	}
+
+	@XmlElement(name = "reporter-id")
 	public String getReporterId() {
 		return reporterId;
 	}
@@ -289,7 +302,7 @@ public class TicketAssemblaDto {
 		this.reporterId = reporterId;
 	}
 
-	@XmlElement(name="custom-fields")
+	@XmlElement(name = "custom-fields")
 	public CustomFieldAssemblaDto getCustomFields() {
 		return customFields;
 	}
@@ -298,7 +311,7 @@ public class TicketAssemblaDto {
 		this.customFields = customFields;
 	}
 
-	@XmlElement(name="hierarchy-type")
+	@XmlElement(name = "hierarchy-type")
 	public int getHierarchyType() {
 		return hierarchyType;
 	}
@@ -307,13 +320,22 @@ public class TicketAssemblaDto {
 		this.hierarchyType = hierarchyType;
 	}
 
-	@XmlElement(name="due-date")
+	@XmlElement(name = "due-date")
 	public DateTime getDueDate() {
 		return dueDate;
 	}
 
 	public void setDueDate(DateTime dueDate) {
 		this.dueDate = dueDate;
+	}
+
+	@XmlElement(name = "picture-url")
+	public String getPictureUrl() {
+		return pictureUrl;
+	}
+
+	public void setPictureUrl(String pictureUrl) {
+		this.pictureUrl = pictureUrl;
 	}
 
 }
