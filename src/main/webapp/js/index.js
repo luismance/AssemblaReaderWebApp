@@ -1,20 +1,3 @@
-function getURLParameter(sParam)
-{
-  var sPageURL = window.location.search.substring(1);
-  var sURLVariables = sPageURL.split('&');
-  for (var i = 0; i < sURLVariables.length; i++)
-  {
-    var sParameterName = sURLVariables[i].split('=');
-    if (sParameterName[0] == sParam)
-    {
-      return sParameterName[1];
-    }
-  }
-}
-
-var Base64={_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",encode:function(e){var t="";var n,r,i,s,o,u,a;var f=0;e=Base64._utf8_encode(e);while(f<e.length){n=e.charCodeAt(f++);r=e.charCodeAt(f++);i=e.charCodeAt(f++);s=n>>2;o=(n&3)<<4|r>>4;u=(r&15)<<2|i>>6;a=i&63;if(isNaN(r)){u=a=64}else if(isNaN(i)){a=64}t=t+this._keyStr.charAt(s)+this._keyStr.charAt(o)+this._keyStr.charAt(u)+this._keyStr.charAt(a)}return t},decode:function(e){var t="";var n,r,i;var s,o,u,a;var f=0;e=e.replace(/[^A-Za-z0-9+/=]/g,"");while(f<e.length){s=this._keyStr.indexOf(e.charAt(f++));o=this._keyStr.indexOf(e.charAt(f++));u=this._keyStr.indexOf(e.charAt(f++));a=this._keyStr.indexOf(e.charAt(f++));n=s<<2|o>>4;r=(o&15)<<4|u>>2;i=(u&3)<<6|a;t=t+String.fromCharCode(n);if(u!=64){t=t+String.fromCharCode(r)}if(a!=64){t=t+String.fromCharCode(i)}}t=Base64._utf8_decode(t);return t},_utf8_encode:function(e){e=e.replace(/rn/g,"n");var t="";for(var n=0;n<e.length;n++){var r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r)}else if(r>127&&r<2048){t+=String.fromCharCode(r>>6|192);t+=String.fromCharCode(r&63|128)}else{t+=String.fromCharCode(r>>12|224);t+=String.fromCharCode(r>>6&63|128);t+=String.fromCharCode(r&63|128)}}return t},_utf8_decode:function(e){var t="";var n=0;var r=c1=c2=0;while(n<e.length){r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r);n++}else if(r>191&&r<224){c2=e.charCodeAt(n+1);t+=String.fromCharCode((r&31)<<6|c2&63);n+=2}else{c2=e.charCodeAt(n+1);c3=e.charCodeAt(n+2);t+=String.fromCharCode((r&15)<<12|(c2&63)<<6|c3&63);n+=3}}return t}};
-
-
 class TicketList extends React.Component {
 
   constructor(props) {
@@ -22,7 +5,15 @@ class TicketList extends React.Component {
   }
 
   render() {
-    const listItems = this.props.tickets.map((ticket, i) => <li className="list-group-item d-flex justify-content-between align-items-center" key={ticket.id}>{ticket.summary}<span className="badge badge-primary badge-pill">{ ticket.number }</span></li> );
+    const listItems = this.props.tickets.map(
+      (ticket, i) =>
+        <li className="list-group-item d-flex justify-content-between align-items-center" key={ticket.id}>
+          {ticket.summary}
+          <span className="badge badge-primary badge-pill">
+            { ticket.number }
+          </span>
+        </li>
+      );
     return ( <ul className="list-group"><div id="ticketDiv" style={{marginTop: '10px'}}>{listItems}</div></ul> );
   }
 
@@ -44,11 +35,8 @@ class SpaceList extends React.Component {
   componentDidMount() {
 
     var thisComp = this;
-
     var userData = sessionStorage.getItem("userData");
-
     var userItem = JSON.parse(userData);
-
     var x2js = new X2JS();
 
     $.ajax({
@@ -82,20 +70,25 @@ class SpaceList extends React.Component {
   updateTickets(){
 
     var thisComp = this;
-
     var userData = sessionStorage.getItem("userData");
-
     var userItem = JSON.parse(userData);
-
     var x2js = new X2JS();
-
-    var perPage = getURLParameter('per_page');
+    var perPage = Number(getURLParameter('per_page'));
+    var curPage = Number(getURLParameter('cur_page'));
 
     if(!perPage || (perPage != 10 && perPage != 15 && perPage != 20)){
       perPage = 10;
     }
+
+    if(!curPage || curPage == null){
+      curPage = 1;
+    }
+
+    sessionStorage.setItem("itemPerPage", perPage);
+    sessionStorage.setItem("curPage", curPage);
+
     if(thisComp.state.currentSpaceId){
-      var urlRequest = "rest/ticket/list?space_id="+ thisComp.state.currentSpaceId + "&per_page=" + perPage;
+      var urlRequest = "rest/ticket/list?space_id="+ thisComp.state.currentSpaceId + "&per_page=" + perPage + "&page=" +curPage;
 
       $.ajax({
         type: "GET",
@@ -112,7 +105,29 @@ class SpaceList extends React.Component {
         console.log("Update Tickets");
         var ticketsJson = x2js.xml_str2json(data);
         const tickets = ticketsJson.tickets.ticket.map(obj => obj);
-        thisComp.setState({ tickets });
+
+        var getTicketCountUrl = "rest/ticket/ticketCount?space_id="+ thisComp.state.currentSpaceId;
+
+        $.ajax({
+          type: "GET",
+          url: getTicketCountUrl,
+          headers: {
+            "Content-Type" : "application/xml",
+            "Authorization" : "Basic "+ Base64.encode(userItem.user.username +":"+userItem.user.password)
+          },
+          dataType: 'text',
+          error: function(data){
+            console.log("Error : " + JSON.stringify(data));
+          }
+        }).done(function(data){
+
+          var ticketCount = x2js.xml_str2json(data);
+
+          console.log("Update Ticket Count : " + ticketCount.spaceTicketCount.count);
+          sessionStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
+          thisComp.setState({ tickets });
+        });
+
       });
     }else{
       console.log("Current Space ID Undefined!");
@@ -123,6 +138,12 @@ class SpaceList extends React.Component {
     console.log("Selected Space");
     this.setState({currentSpaceId});
     this.updateTickets();
+  }
+
+  logout(){
+    console.log("Logged out");
+    sessionStorage.clear();
+    window.location.href = "/AssemblaReader/login.html";
   }
 
   render() {
@@ -156,20 +177,38 @@ class SpaceList extends React.Component {
         </span>
         </li> );
 
+      var curPage = Number(sessionStorage.getItem("curPage"));
+      var perPage = Number(sessionStorage.getItem("itemPerPage"));
+      var totalTicketCount = Number(sessionStorage.getItem("totalTicketCount"));
+      var totalTicketCountPerPage = totalTicketCount / perPage;
+      var maxPage = totalTicketCountPerPage == 0 ? 1 : totalTicketCountPerPage;
+      maxPage = ((totalTicketCountPerPage * perPage) == totalTicketCount || totalTicketCount < perPage) ? maxPage : (maxPage + 1);
+
+      var paginationFirst = ( curPage > 1) ? curPage - 1 : 1;
+      var paginationSecond = (curPage == maxPage && maxPage > 2) ? curPage - 1 : ( curPage == 1 ) ? curPage + 1 : curPage;
+      var paginationThird = (curPage == maxPage ) ? curPage : (curPage > 2) ? curPage + 1 : 3;
+
+      var previousPage = ( curPage > 1) ? (curPage - 1) : 1;
+      var nextPage = (curPage == maxPage) ? curPage : curPage + 1;
+
+      var firstPage = <li className="page-item"><a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + paginationFirst}>{paginationFirst}</a></li>;
+      var secondPage = ( totalTicketCount < perPage ) ? "" : <li className="page-item"><a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + paginationSecond}>{paginationSecond}</a></li>;
+      var thirdPage = ( totalTicketCount < (perPage * 2) ) ? "" : <li className="page-item" className="hidden" ><a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + paginationThird}>{paginationThird}</a></li>;
+
         var ticketPagination =
         <nav aria-label="Page navigation example">
           <ul className="pagination">
             <li className="page-item">
-              <a className="page-link" href="#" aria-label="Previous">
+              <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + previousPage} aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
                 <span className="sr-only">Previous</span>
               </a>
             </li>
-            <li className="page-item"><a className="page-link" href="#">1</a></li>
-            <li className="page-item"><a className="page-link" href="#">2</a></li>
-            <li className="page-item"><a className="page-link" href="#">3</a></li>
+            {firstPage}
+            {secondPage}
+            {thirdPage}
             <li className="page-item">
-              <a className="page-link" href="#" aria-label="Next">
+              <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + nextPage} aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
                 <span className="sr-only">Next</span>
               </a>
@@ -181,19 +220,33 @@ class SpaceList extends React.Component {
 
         return (
           <div>
-            <div>
-              <ul className="nav nav-tabs">{spaceList}</ul>
-            </div>
-
-            {displayPerPage}
-
-            <ul className="list-group">
-              <div id="ticketDiv" style={{marginTop: '10px'}}>
-                {ticketList}
+            <nav className="navbar navbar-expand-lg navbar-light bg-light">
+              <a className="navbar-brand" href="#">Ticket Monitor</a>
+              <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+                <span className="navbar-toggler-icon"></span>
+              </button>
+              <div className="collapse navbar-collapse" id="navbarText">
+                <ul className="navbar-nav mr-auto">
+                </ul>
+                <span className="navbar-text">
+                  <a onClick={this.logout}>Logout</a>
+                </span>
               </div>
-            </ul>
+            </nav>
+            <div>
+              <div>
+                <ul className="nav nav-tabs">{spaceList}</ul>
+              </div>
 
-            {ticketPagination}
+              {displayPerPage}
+
+              <ul className="list-group">
+                <div id="ticketDiv" style={{marginTop: '10px'}}>
+                  {ticketList}
+                </div>
+              </ul>
+              {ticketPagination}
+            </div>
           </div>
         );
       }
@@ -201,11 +254,4 @@ class SpaceList extends React.Component {
     }
 
 
-
-    function indexPage(props){
-      return React.createElement('div', {className : 'container-fluid', 'id' : 'spaces' },
-      React.createElement('h3', {}, 'Spaces'),
-      React.createElement(SpaceList));
-    }
-
-    ReactDOM.render(React.createElement(indexPage),document.getElementById('app'));
+    ReactDOM.render(React.createElement(SpaceList),document.getElementById('app'));

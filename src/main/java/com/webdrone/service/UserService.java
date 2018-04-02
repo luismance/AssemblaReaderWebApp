@@ -48,7 +48,6 @@ public class UserService extends BaseService<User> {
 		String password = values[1];
 		User user = findUserByUsername(username);
 		
-		
 		if (user == null) {
 			UserAuthResult res = new UserAuthResult(500, "Username not found", null);
 			return res;

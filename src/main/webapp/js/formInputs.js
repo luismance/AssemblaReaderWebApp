@@ -1,29 +1,40 @@
-function inputText(props){
-  return  React.createElement('div', { className : 'row' },
-    React.createElement('div', { className : 'input-group form-group'},
-        React.createElement('span', { className : 'input-group-addon', id : 'sizing-addon2'}, props.label ),
-        React.createElement('input', {
-        	'id' : props.inputId,
-        	type : props.inputType ,
-        	className : 'form-control',
-        	'placeholder' : props.label  ,
-        	'aria-label' : props.label ,
-        	'aria-describedby' : 'sizing-addon2',
-        	'name' : props.name,
-            onChange: props.textChangeFunction
-        })
-    )
-  );
+class InputText extends React.Component {
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return(
+      <div className="row">
+        <div className="input-group form-group">
+          <span id="sizing-addon2" className="input-group-addon">{this.props.label}</span>
+          <input id={this.props.inputId} type={this.props.inputType} className="form-control" placeholder={this.props.label} aria-label={this.props.label} aria-describedby="sizing-addon2" name={this.props.name} onChange={this.props.textChangeFunction} />
+        </div>
+      </div>
+    );
+  }
 }
 
-function formButton(props){
-    return React.createElement('button',{
-    	className : 'btn btn-lg btn-primary btn-block',
-    	type : props.buttonType,
-    	onClick : props.functionCall
-    }, props.label );
+class FormButton extends React.Component {
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return (
+      <button className="btn btn-lg btn-primary btn-block" type={this.props.buttonType} onClick={this.props.functionCall}>{this.props.label}</button>
+    );
+  }
 }
 
-function formHeader(props){
-    return React.createElement('h2',{ className : 'form-signin-heading'}, props.label );
+class FormHeader extends React.Component {
+  constructor(props){
+    super(props);
+  }
+
+  render(){
+    return (
+      <h2 className="form-signin-heading">{this.props.label}</h2>
+    );
+  }
 }

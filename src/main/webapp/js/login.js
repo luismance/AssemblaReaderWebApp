@@ -1,62 +1,74 @@
-var loginUser = function(){
+class LoginForm extends React.Component {
 
-  if(sessionStorage.getItem("userData")){
-    window.location.href = "/AssemblaReader/index.html";
+  constructor(props){
+    super(props);
   }
 
-  var userName = $('#username').val();
-  var password = $('#password').val();
-  var confirmPassword = $('#confirmpassword').val();
+  componentDidMount(){
+    console.log("User Data : " + JSON.stringify(sessionStorage.getItem("userData")));
+  }
 
-  var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>"+userName+"</password><username>"+ password +"</username></user>";
-  $.ajax({
-    type: "POST",
-    url: "rest/user/login",
-    headers: {
-      "Content-Type" : "application/xml"
-    },
-    data: requestData,
-    dataType: 'text',
-    success: function(data){
-      var x2js = new X2JS();
-      var userJson = x2js.xml_str2json(data);
-      sessionStorage.setItem("userData", JSON.stringify(userJson));
+  loginUser(){
+
+    if(sessionStorage.getItem("userData")){
       window.location.href = "/AssemblaReader/index.html";
-    },
-    error: function(data){
-      $("#loginErrorMessage").html("<strong>Error!</strong><br/>"+data.responseText);
-      $("#loginErrorMessage").show();
     }
-  });
 
-}
+    var userName = $('#username').val();
+    var password = $('#password').val();
+    var confirmPassword = $('#confirmpassword').val();
 
-function loginForm(props){
-  return React.createElement('form', {}, React.createElement(formHeader, { label : 'Login' }),
-    React.createElement('div', { 'id' : 'loginErrorMessage' , className : 'alert alert-danger', style : {display:'none'}}),
-    React.createElement(inputText, { inputId : 'username', label : 'Username', inputType : 'text'}),
-    React.createElement(inputText, { inputId : 'password', label : 'Password', inputType : 'password'}),
-    React.createElement('div', {className : 'row'},
-      React.createElement('div' , {className:'col-sm-6'}, React.createElement(formButton , { label : 'Login', buttonType : 'button', functionCall : loginUser})),
-      React.createElement('div' , {className:'col-sm-6'}, 'Not Registered?',
-        React.createElement('a' , {'href':'/AssemblaReader/registration.html'},
-          React.createElement('abbr', {}, 'Register with Assembla')
-          )
-        )
-      )
+    var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>"+userName+"</password><username>"+ password +"</username></user>";
+    $.ajax({
+      type: "POST",
+      url: "rest/user/login",
+      headers: {
+        "Content-Type" : "application/xml"
+      },
+      data: requestData,
+      dataType: 'text',
+      success: function(data){
+        var x2js = new X2JS();
+        var userJson = x2js.xml_str2json(data);
+        sessionStorage.setItem("userData", JSON.stringify(userJson));
+        window.location.href = "/AssemblaReader/index.html";
+      },
+      error: function(data){
+        $("#loginErrorMessage").html("<strong>Error!</strong><br/>"+data.responseText);
+        $("#loginErrorMessage").show();
+      }
+    });
+  }
+
+  render(){
+    return (
+      <div id="registration" className="container">
+        <div className="row align-items-center">
+          <div className="col">
+          </div>
+          <div className="col">
+            <form>
+              <FormHeader label="Login" />
+              <div id="loginErrorMessage" className="alert alert-danger" style={{display:"none"}} />
+              <InputText inputId="username" label="Username" inputType="text" />
+              <InputText inputId="password" label="Password" inputType="password" />
+              <div className="col-sm-6">
+                <FormButton label="Login" buttonType="button" functionCall={this.loginUser} />
+              </div>
+              <div className="col-sm-6">
+                Not Registered?
+                <a href="/AssemblaReader/registration.html"><abbr>Register with Assembla</abbr></a>
+              </div>
+            </form>
+          </div>
+          <div className="col">
+          </div>
+        </div>
+      </div>
     );
+  }
+
 }
 
-function loginPage(props){
-  return React.createElement('div', {className : 'container', 'id' : 'registration'},
-    React.createElement('div', {className : 'row align-items-center'},
-      React.createElement('div', {className : 'col'}),
-      React.createElement('div', {className : 'col'},
-        React.createElement(loginForm)),
-      React.createElement('div', {className : 'col'})
 
-      )
-    )
-}
-
-ReactDOM.render(React.createElement(loginPage),document.getElementById('app'));
+ReactDOM.render(React.createElement(LoginForm),document.getElementById('app'));
