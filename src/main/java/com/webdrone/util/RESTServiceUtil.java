@@ -2,6 +2,7 @@ package com.webdrone.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -9,6 +10,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.bind.ValidationEvent;
+import javax.xml.bind.ValidationEventHandler;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.ClientProtocolException;
@@ -16,12 +22,100 @@ import org.apache.http.client.ClientProtocolException;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.webdrone.assembla.dto.MilestoneAssemblaDto;
+import com.webdrone.assembla.dto.TicketListAssemblaDto;
+import com.webdrone.assembla.dto.UserAssemblaDto;
 import com.webdrone.dto.RefreshTokenObject;
 import com.webdrone.model.User;
 
 public class RESTServiceUtil {
 
 	private static String REQUEST_ACCESS_TOKEN_URL = "https://api.assembla.com/token?grant_type=refresh_token&refresh_token=";
+
+	public static TicketListAssemblaDto convertTicketListXml(String spaceId, int ticketsPerPage, int page, String bearerToken) {
+		String ticketsXml = RESTServiceUtil
+				.sendGET(
+						"https://api.assembla.com/v1/spaces/" + spaceId + "/tickets.xml?per_page="
+								+ ticketsPerPage + "&page=" + page,
+						true, "Bearer " + bearerToken);
+
+		JAXBContext jxb;
+		try {
+			jxb = JAXBContext.newInstance(TicketListAssemblaDto.class);
+
+			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+
+			
+			
+			unmarshaller.setEventHandler(new ValidationEventHandler() {
+				public boolean handleEvent(ValidationEvent event) {
+					throw new RuntimeException(event.getMessage(), event.getLinkedException());
+				}
+			});
+			
+			TicketListAssemblaDto ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller
+					.unmarshal(new StringReader(ticketsXml));
+			
+			return ticketListAssemblaDto;
+		} catch (JAXBException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public static MilestoneAssemblaDto convertMilestonXml(String spaceId, String milestoneExternalRefId, String bearerToken) {
+		String milestoneXml = RESTServiceUtil.sendGET(
+				"https://api.assembla.com/v1/spaces/" + spaceId + "/milestones/"
+						+ milestoneExternalRefId + ".xml",
+				true, "Bearer " + bearerToken);
+
+		JAXBContext jxb;
+		try {
+			jxb = JAXBContext.newInstance(MilestoneAssemblaDto.class);
+
+			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+			
+			unmarshaller.setEventHandler(new ValidationEventHandler() {
+				public boolean handleEvent(ValidationEvent event) {
+					throw new RuntimeException(event.getMessage(), event.getLinkedException());
+				}
+			});
+			
+			MilestoneAssemblaDto milestoneAssemblaDto = (MilestoneAssemblaDto) unmarshaller
+					.unmarshal(new StringReader(milestoneXml));
+			
+			return milestoneAssemblaDto;
+		} catch (JAXBException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	public static User convertUserXml(String userExternalRefId, String bearerToken) {
+		String userXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/users/" + userExternalRefId + ".xml",
+				true, "Bearer " + bearerToken);
+
+		JAXBContext jxb;
+		try {
+			jxb = JAXBContext.newInstance(UserAssemblaDto.class);
+
+			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+			
+			unmarshaller.setEventHandler(new ValidationEventHandler() {
+				public boolean handleEvent(ValidationEvent event) {
+					throw new RuntimeException(event.getMessage(), event.getLinkedException());
+				}
+			});
+			
+			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userXml));
+			
+			User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(), "bearer_token", "refresh_token", userAssemblaDto.getName(), userAssemblaDto.getEmail(), "");
+			return user;
+		} catch (JAXBException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
 	public static String sendGET(String uri, boolean requiresAuthorization, String authorization) {
 		return sendReq(uri, RESTServiceMethod.GET, requiresAuthorization, authorization);

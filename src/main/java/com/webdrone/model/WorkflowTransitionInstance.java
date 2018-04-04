@@ -6,8 +6,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
-@Table
-@Entity(name = "WORKFLOW_TRANSITION_INSTANCE")
+@Entity
+@Table(name = "WORKFLOW_TRANSITION_INSTANCE")
 public class WorkflowTransitionInstance extends RemoteEntity {
 
 	private static final long serialVersionUID = 1L;
@@ -16,7 +16,7 @@ public class WorkflowTransitionInstance extends RemoteEntity {
 	@JoinColumn(name = "TICKET_ID", nullable = false)
 	private Ticket ticket;
 
-	@Column(name = "MESSAGE")
+	@Column(name = "MESSAGE", columnDefinition = "TEXT")
 	private String message;
 
 	@ManyToOne(optional = false)
@@ -36,10 +36,10 @@ public class WorkflowTransitionInstance extends RemoteEntity {
 	@JoinColumn(name = "WORKFLOW_TRANSITION_ID", nullable = false)
 	private WorkflowTransition workflowTransition;
 
-	public WorkflowTransitionInstance(){
+	public WorkflowTransitionInstance() {
 		super();
 	}
-	
+
 	public Ticket getTicket() {
 		return ticket;
 	}

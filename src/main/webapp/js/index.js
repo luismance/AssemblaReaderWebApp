@@ -1,39 +1,145 @@
-class TicketList extends React.Component {
-
-  constructor(props) {
-    super(props);
-  }
-
-  render() {
-    const listItems = this.props.tickets.map(
-      (ticket, i) =>
-        <li className="list-group-item d-flex justify-content-between align-items-center" key={ticket.id}>
-          {ticket.summary}
-          <span className="badge badge-primary badge-pill">
-            { ticket.number }
-          </span>
-        </li>
-      );
-    return ( <ul className="list-group"><div id="ticketDiv" style={{marginTop: '10px'}}>{listItems}</div></ul> );
-  }
-
-}
-
-class SpaceList extends React.Component {
-
+class TicketItem extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      spaces : [],
-      tickets : [],
-      currentSpaceId : 0
+      violationCount: 0,
+      ticketChanges: []
+    };
+  }
+
+  componentDidMount() {
+    var thisComp = this;
+    var userData = sessionStorage.getItem("userData");
+    var userItem = JSON.parse(userData);
+    var x2js = new X2JS();
+
+    $.ajax({
+      type: "GET",
+      url: "rest/ticket/ticketChanges?space_id=" + this.props.spaceId + "&ticket_num=" + this.props.number,
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      dataType: "text",
+      error: function(data) {
+        console.log("Error : " + JSON.stringify(data));
+      }
+    }).done(function(data) {
+      var ticketChangesJson = x2js.xml_str2json(data);
+      const ticketChanges = ticketChangesJson["ticket-comments"]["ticket-comment"];
+
+      if (ticketChanges || ticketChanges != null) {
+        thisComp.setState({ ticketChanges });
+      }
+    });
+  }
+
+  render() {
+    var ticketChanges = "";
+
+    if (this.state.ticketChanges instanceof Array) {
+      var ticketChangesArray = this.state.ticketChanges
+        .slice(0)
+        .reverse()
+        .map((ticketChange, i) => {
+          if (ticketChange["ticket-changes"].includes("--- []")) {
+            return "";
+          } else {
+            var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
+            var finalTicketChanges = "";
+            var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
+            for (var i = 1; i < formattedTicketChangesArray.length; i++) {
+              var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
+              finalTicketChanges += ">"+ticketCommentItem[0].replace("_id", "").replace("_", " ") + " : " + ticketCommentItem[1] + " => " + ticketCommentItem[2];
+              if (i < formattedTicketChangesArray.length) {
+                finalTicketChanges += "\n";
+              }
+            }
+
+            return (
+              <a href="#" class="list-group-item">
+                {finalTicketChanges}
+              </a>
+            );
+          }
+        });
+
+      ticketChanges = ticketChangesArray;
+    } else {
+      var ticketChange = this.state.ticketChanges;
+      if (ticketChange["ticket-changes"].includes("--- []")) {
+        ticketChange = "";
+      } else {
+        var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
+        var finalTicketChanges = "";
+        var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
+        for (var i = 1; i < formattedTicketChangesArray.length; i++) {
+          var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
+          finalTicketChanges += ticketCommentItem[0] + " : " + ticketCommentItem[1] + " => " + ticketCommentItem[2];
+          if (i < formattedTicketChangesArray.length) {
+            finalTicketChanges += "\n";
+          }
+        }
+
+        ticketChange = (
+          <a href="#" class="list-group-item">
+            {finalTicketChanges}
+          </a>
+        );
+
+        ticketChanges = ticketChange;
+      }
+    }
+
+    var ticketChangesFull = <ul className="list-group">{ticketChanges}</ul>;
+
+    var listItems = (
+      <div class="panel panel-default">
+        <a class="list-group-item" data-toggle="collapse" href={"#collapse" + this.props.number}>
+          {this.props.summary}
+          <span class="badge">{this.props.number}</span>
+        </a>
+        <div class="panel-collapse collapse" id={"collapse" + this.props.number}>
+          <div class="panel-body">{ticketChangesFull}</div>
+        </div>
+      </div>
+    );
+
+    return <div class="panel-group">{listItems}</div>;
+  }
+}
+
+class TicketList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      spaceId: 0
+    };
+  }
+
+  render() {
+    const listItems = this.props.tickets.map((ticket, i) => <TicketItem id={ticket.id} summary={ticket.summary} number={ticket.number} spaceId={ticket["space-id"]} />);
+    return (
+      <div id="ticketDiv" style={{ marginTop: "10px" }}>
+        {listItems}
+      </div>
+    );
+  }
+}
+
+class SpaceList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      spaces: [],
+      tickets: [],
+      currentSpaceId: 0
     };
 
     this.updateTickets = this.updateTickets.bind(this);
   }
 
   componentDidMount() {
-
     var thisComp = this;
     var userData = sessionStorage.getItem("userData");
     var userItem = JSON.parse(userData);
@@ -43,215 +149,226 @@ class SpaceList extends React.Component {
       type: "GET",
       url: "rest/space/list",
       headers: {
-        "Content-Type" : "application/xml",
-        "Authorization" : "Basic "+ Base64.encode(userItem.user.username +":"+userItem.user.password)
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
       },
-      dataType: 'text',
-      error: function(data){
+      dataType: "text",
+      error: function(data) {
         console.log("Error : " + JSON.stringify(data));
       }
-    }).done(function(data){
+    }).done(function(data) {
       var spacesJson = x2js.xml_str2json(data);
       const spaces = spacesJson.spaces.space.map(obj => obj);
       thisComp.setState({ spaces });
 
-      var currentSpaceId = getURLParameter('space_id');
-      console.log("Current Space ID : "+ currentSpaceId);
-      if(!currentSpaceId){
-      var currentSpaceId = thisComp.state.spaces[0].id;
+      var currentSpaceId = getURLParameter("space_id");
+      if (!currentSpaceId) {
+        var currentSpaceId = thisComp.state.spaces[0].id;
       }
-
-
       thisComp.setState({ currentSpaceId });
       thisComp.updateTickets();
     });
   }
 
-  updateTickets(){
-
+  updateTickets() {
     var thisComp = this;
     var userData = sessionStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
-    var perPage = Number(getURLParameter('per_page'));
-    var curPage = Number(getURLParameter('cur_page'));
+    var perPage = Number(getURLParameter("per_page"));
+    var curPage = Number(getURLParameter("cur_page"));
 
-    if(!perPage || (perPage != 10 && perPage != 15 && perPage != 20)){
+    if (!perPage || (perPage != 10 && perPage != 15 && perPage != 20)) {
       perPage = 10;
     }
 
-    if(!curPage || curPage == null){
+    if (!curPage || curPage == null) {
       curPage = 1;
     }
 
     sessionStorage.setItem("itemPerPage", perPage);
     sessionStorage.setItem("curPage", curPage);
 
-    if(thisComp.state.currentSpaceId){
-      var urlRequest = "rest/ticket/list?space_id="+ thisComp.state.currentSpaceId + "&per_page=" + perPage + "&page=" +curPage;
+    if (thisComp.state.currentSpaceId) {
+      var urlRequest = "rest/ticket/list?space_id=" + thisComp.state.currentSpaceId + "&per_page=" + perPage + "&page=" + curPage;
 
       $.ajax({
         type: "GET",
         url: urlRequest,
         headers: {
-          "Content-Type" : "application/xml",
-          "Authorization" : "Basic "+ Base64.encode(userItem.user.username +":"+userItem.user.password)
+          "Content-Type": "application/xml",
+          Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
         },
-        dataType: 'text',
-        error: function(data){
+        dataType: "text",
+        error: function(data) {
           console.log("Error : " + JSON.stringify(data));
         }
-      }).done(function(data){
-        console.log("Update Tickets");
+      }).done(function(data) {
         var ticketsJson = x2js.xml_str2json(data);
         const tickets = ticketsJson.tickets.ticket.map(obj => obj);
 
-        var getTicketCountUrl = "rest/ticket/ticketCount?space_id="+ thisComp.state.currentSpaceId;
+        var getTicketCountUrl = "rest/ticket/ticketCount?space_id=" + thisComp.state.currentSpaceId;
 
         $.ajax({
           type: "GET",
           url: getTicketCountUrl,
           headers: {
-            "Content-Type" : "application/xml",
-            "Authorization" : "Basic "+ Base64.encode(userItem.user.username +":"+userItem.user.password)
+            "Content-Type": "application/xml",
+            Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
           },
-          dataType: 'text',
-          error: function(data){
+          dataType: "text",
+          error: function(data) {
             console.log("Error : " + JSON.stringify(data));
           }
-        }).done(function(data){
-
+        }).done(function(data) {
           var ticketCount = x2js.xml_str2json(data);
 
           console.log("Update Ticket Count : " + ticketCount.spaceTicketCount.count);
           sessionStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
           thisComp.setState({ tickets });
         });
-
       });
-    }else{
+    } else {
       console.log("Current Space ID Undefined!");
     }
   }
 
-  updateSpace(currentSpaceId){
-    console.log("Selected Space");
-    this.setState({currentSpaceId});
+  updateSpace(currentSpaceId) {
+    this.setState({ currentSpaceId });
     this.updateTickets();
   }
 
-  logout(){
-    console.log("Logged out");
+  logout() {
     sessionStorage.clear();
     window.location.href = "/AssemblaReader/login.html";
   }
 
   render() {
-    var spaceList = this.state.spaces.map(
-      (space, i) =>
+    var spaceList = this.state.spaces.map((space, i) => (
       //<li className="nav-item " key={space.id} onClick={this.updateSpace.bind(this, space.id)}>
       <li className="nav-item " key={space.id}>
-      <a  href={"/AssemblaReader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? 'active' : '')}>
-      { space.name }
-      </a>
-      </li> );
+        <a href={"/AssemblaReader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? "active" : "")}>
+          {space.name}
+        </a>
+      </li>
+    ));
 
-      var displayPerPage =
+    var displayPerPage = (
       <div className="dropdown">
         <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           Tickets per page
         </button>
         <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>10</a>
-          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>15</a>
-          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>20</a>
+          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
+            10
+          </a>
+          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
+            15
+          </a>
+          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
+            20
+          </a>
         </div>
-      </div>;
+      </div>
+    );
 
-      var ticketList = this.state.tickets.map(
-        (ticket, i) =>
-        <li className="list-group-item d-flex justify-content-between align-items-center" key={ticket.id}>
-        { ticket.summary }
-        <span className="badge badge-primary badge-pill">
-        { ticket.number }
-        </span>
-        </li> );
+    var curPage = Number(sessionStorage.getItem("curPage"));
+    var perPage = Number(sessionStorage.getItem("itemPerPage"));
+    var totalTicketCount = Number(sessionStorage.getItem("totalTicketCount"));
+    var totalTicketCountPerPage = totalTicketCount / perPage;
+    var maxPage = totalTicketCountPerPage == 0 ? 1 : totalTicketCountPerPage;
+    maxPage = totalTicketCountPerPage * perPage == totalTicketCount || totalTicketCount < perPage ? maxPage : maxPage + 1;
 
-      var curPage = Number(sessionStorage.getItem("curPage"));
-      var perPage = Number(sessionStorage.getItem("itemPerPage"));
-      var totalTicketCount = Number(sessionStorage.getItem("totalTicketCount"));
-      var totalTicketCountPerPage = totalTicketCount / perPage;
-      var maxPage = totalTicketCountPerPage == 0 ? 1 : totalTicketCountPerPage;
-      maxPage = ((totalTicketCountPerPage * perPage) == totalTicketCount || totalTicketCount < perPage) ? maxPage : (maxPage + 1);
+    var paginationFirst = curPage > 1 ? curPage - 1 : 1;
+    var paginationSecond = curPage == maxPage && maxPage > 2 ? curPage - 1 : curPage == 1 ? curPage + 1 : curPage;
+    var paginationThird = curPage == maxPage ? curPage : curPage > 2 ? curPage + 1 : 3;
 
-      var paginationFirst = ( curPage > 1) ? curPage - 1 : 1;
-      var paginationSecond = (curPage == maxPage && maxPage > 2) ? curPage - 1 : ( curPage == 1 ) ? curPage + 1 : curPage;
-      var paginationThird = (curPage == maxPage ) ? curPage : (curPage > 2) ? curPage + 1 : 3;
+    var previousPage = curPage > 1 ? curPage - 1 : 1;
+    var nextPage = curPage == maxPage ? curPage : curPage + 1;
 
-      var previousPage = ( curPage > 1) ? (curPage - 1) : 1;
-      var nextPage = (curPage == maxPage) ? curPage : curPage + 1;
+    var firstPage = (
+      <li className="page-item">
+        <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationFirst}>
+          {paginationFirst}
+        </a>
+      </li>
+    );
+    var secondPage =
+      totalTicketCount < perPage ? (
+        ""
+      ) : (
+        <li className="page-item">
+          <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationSecond}>
+            {paginationSecond}
+          </a>
+        </li>
+      );
+    var thirdPage =
+      totalTicketCount < perPage * 2 ? (
+        ""
+      ) : (
+        <li className="page-item" className="hidden">
+          <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationThird}>
+            {paginationThird}
+          </a>
+        </li>
+      );
 
-      var firstPage = <li className="page-item"><a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + paginationFirst}>{paginationFirst}</a></li>;
-      var secondPage = ( totalTicketCount < perPage ) ? "" : <li className="page-item"><a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + paginationSecond}>{paginationSecond}</a></li>;
-      var thirdPage = ( totalTicketCount < (perPage * 2) ) ? "" : <li className="page-item" className="hidden" ><a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + paginationThird}>{paginationThird}</a></li>;
+    var ticketPagination = (
+      <nav aria-label="Page navigation example">
+        <ul className="pagination">
+          <li className="page-item">
+            <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
+              <span aria-hidden="true">&laquo;</span>
+              <span className="sr-only">Previous</span>
+            </a>
+          </li>
+          {firstPage}
+          {secondPage}
+          {thirdPage}
+          <li className="page-item">
+            <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
+              <span aria-hidden="true">&raquo;</span>
+              <span className="sr-only">Next</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    );
 
-        var ticketPagination =
-        <nav aria-label="Page navigation example">
-          <ul className="pagination">
-            <li className="page-item">
-              <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + previousPage} aria-label="Previous">
-                <span aria-hidden="true">&laquo;</span>
-                <span className="sr-only">Previous</span>
-              </a>
-            </li>
-            {firstPage}
-            {secondPage}
-            {thirdPage}
-            <li className="page-item">
-              <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page="+perPage+"&cur_page=" + nextPage} aria-label="Next">
-                <span aria-hidden="true">&raquo;</span>
-                <span className="sr-only">Next</span>
-              </a>
-            </li>
-          </ul>
-        </nav>;
-
-
-
-        return (
-          <div>
-            <nav className="navbar navbar-expand-lg navbar-light bg-light">
-              <a className="navbar-brand" href="#">Ticket Monitor</a>
-              <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
-                <span className="navbar-toggler-icon"></span>
-              </button>
-              <div className="collapse navbar-collapse" id="navbarText">
-                <ul className="navbar-nav mr-auto">
-                </ul>
-                <span className="navbar-text">
-                  <a onClick={this.logout}>Logout</a>
-                </span>
-              </div>
-            </nav>
-            <div>
-              <div>
-                <ul className="nav nav-tabs">{spaceList}</ul>
-              </div>
-
-              {displayPerPage}
-
-              <ul className="list-group">
-                <div id="ticketDiv" style={{marginTop: '10px'}}>
-                  {ticketList}
-                </div>
-              </ul>
-              {ticketPagination}
-            </div>
+    return (
+      <div>
+        <nav className="navbar navbar-expand-lg navbar-light bg-light">
+          <a className="navbar-brand" href="#">
+            Ticket Monitor
+          </a>
+          <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+            <span className="navbar-toggler-icon" />
+          </button>
+          <div className="collapse navbar-collapse" id="navbarText">
+            <ul className="navbar-nav mr-auto" />
+            <span className="navbar-text">
+              <a onClick={this.logout}>Logout</a>
+            </span>
           </div>
-        );
-      }
+        </nav>
+        <div>
+          <div>
+            <ul className="nav nav-tabs">{spaceList}</ul>
+          </div>
 
-    }
+          {displayPerPage}
 
+          <ul className="list-group">
+            <div id="ticketDiv" style={{ marginTop: "10px" }}>
+              <TicketList tickets={this.state.tickets} spaceId={this.state.currentSpaceId} />
+            </div>
+          </ul>
+          {ticketPagination}
+        </div>
+      </div>
+    );
+  }
+}
 
-    ReactDOM.render(React.createElement(SpaceList),document.getElementById('app'));
+ReactDOM.render(React.createElement(SpaceList), document.getElementById("app"));

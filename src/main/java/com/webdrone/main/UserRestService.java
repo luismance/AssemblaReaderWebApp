@@ -47,7 +47,6 @@ public class UserRestService {
 	public Response loginUser(String requestBody) {
 
 		try {
-			System.out.println("User Details : " + requestBody);
 			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
@@ -82,7 +81,6 @@ public class UserRestService {
 	public Response createUser(String requestBody) {
 
 		try {
-			System.out.println("User Details : " + requestBody);
 			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 

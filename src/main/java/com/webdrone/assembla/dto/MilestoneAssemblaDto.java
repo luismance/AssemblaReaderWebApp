@@ -1,11 +1,12 @@
 package com.webdrone.assembla.dto;
 
-import java.math.BigDecimal;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.joda.time.DateTime;
+
+import com.webdrone.util.DoubleAdapter;
 
 @XmlRootElement(name = "milestone")
 public class MilestoneAssemblaDto {
@@ -33,7 +34,7 @@ public class MilestoneAssemblaDto {
 	private boolean completed;
 
 	private DateTime completedDate;
-	
+
 	private DateTime updatedAt;
 
 	private String updatedBy;
@@ -55,7 +56,7 @@ public class MilestoneAssemblaDto {
 		this.id = id;
 	}
 
-	@XmlElement(name="start-date")
+	@XmlElement(name = "start-date")
 	public DateTime getStartDate() {
 		return startDate;
 	}
@@ -64,7 +65,7 @@ public class MilestoneAssemblaDto {
 		this.startDate = startDate;
 	}
 
-	@XmlElement(name="due-date")
+	@XmlElement(name = "due-date")
 	public DateTime getDueDate() {
 		return dueDate;
 	}
@@ -72,7 +73,9 @@ public class MilestoneAssemblaDto {
 	public void setDueDate(DateTime dueDate) {
 		this.dueDate = dueDate;
 	}
-
+	
+	@XmlJavaTypeAdapter(DoubleAdapter.class)
+	@XmlElement(nillable = true)
 	public Double getBudget() {
 		return budget;
 	}
@@ -90,7 +93,7 @@ public class MilestoneAssemblaDto {
 		this.title = title;
 	}
 
-	@XmlElement(name="user-id")
+	@XmlElement(name = "user-id")
 	public String getUserId() {
 		return userId;
 	}
@@ -99,7 +102,7 @@ public class MilestoneAssemblaDto {
 		this.userId = userId;
 	}
 
-	@XmlElement(name="created-at")
+	@XmlElement(name = "created-at")
 	public DateTime getCreatedAt() {
 		return createdAt;
 	}
@@ -108,7 +111,7 @@ public class MilestoneAssemblaDto {
 		this.createdAt = createdAt;
 	}
 
-	@XmlElement(name="created-by")
+	@XmlElement(name = "created-by")
 	public String getCreatedBy() {
 		return createdBy;
 	}
@@ -117,7 +120,7 @@ public class MilestoneAssemblaDto {
 		this.createdBy = createdBy;
 	}
 
-	@XmlElement(name="space-id")
+	@XmlElement(name = "space-id")
 	public String getSpaceId() {
 		return spaceId;
 	}
@@ -135,7 +138,7 @@ public class MilestoneAssemblaDto {
 		this.description = description;
 	}
 
-	@XmlElement(name="is-completed")
+	@XmlElement(name = "is-completed")
 	public boolean isCompleted() {
 		return completed;
 	}
@@ -144,7 +147,7 @@ public class MilestoneAssemblaDto {
 		this.completed = completed;
 	}
 
-	@XmlElement(name="completed-date")
+	@XmlElement(name = "completed-date")
 	public DateTime getCompletedDate() {
 		return completedDate;
 	}
@@ -153,7 +156,7 @@ public class MilestoneAssemblaDto {
 		this.completedDate = completedDate;
 	}
 
-	@XmlElement(name="updated-at")
+	@XmlElement(name = "updated-at")
 	public DateTime getUpdatedAt() {
 		return updatedAt;
 	}
@@ -162,7 +165,7 @@ public class MilestoneAssemblaDto {
 		this.updatedAt = updatedAt;
 	}
 
-	@XmlElement(name="updated-by")
+	@XmlElement(name = "updated-by")
 	public String getUpdatedBy() {
 		return updatedBy;
 	}
@@ -171,7 +174,7 @@ public class MilestoneAssemblaDto {
 		this.updatedBy = updatedBy;
 	}
 
-	@XmlElement(name="release-level")
+	@XmlElement(name = "release-level")
 	public String getReleaseLevel() {
 		return releaseLevel;
 	}
@@ -180,7 +183,7 @@ public class MilestoneAssemblaDto {
 		this.releaseLevel = releaseLevel;
 	}
 
-	@XmlElement(name="release-notes")
+	@XmlElement(name = "release-notes")
 	public String getReleaseNotes() {
 		return releaseNotes;
 	}
@@ -189,7 +192,7 @@ public class MilestoneAssemblaDto {
 		this.releaseNotes = releaseNotes;
 	}
 
-	@XmlElement(name="planner-type")
+	@XmlElement(name = "planner-type")
 	public int getPlannerType() {
 		return plannerType;
 	}
@@ -198,7 +201,7 @@ public class MilestoneAssemblaDto {
 		this.plannerType = plannerType;
 	}
 
-	@XmlElement(name="pretty-release-level")
+	@XmlElement(name = "pretty-release-level")
 	public String getPrettyReleaseLevel() {
 		return prettyReleaseLevel;
 	}

@@ -43,13 +43,15 @@ public class BaseService<T extends BaseModel> {
 
 	public Object create(Object object) {
 		getEntityManager().persist(object);
-
+		getEntityManager().flush();
+		getEntityManager().clear();
 		return object;
 	}
 
 	public Object update(Object object) {
 		getEntityManager().merge(object);
-
+		getEntityManager().flush();
+		getEntityManager().clear();
 		return object;
 	}
 

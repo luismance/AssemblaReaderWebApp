@@ -16,6 +16,10 @@ public class UserAssemblaDto {
 
 	private String phone;
 
+	private String picture;
+
+	private String organization;
+
 	@XmlElement
 	public String getId() {
 		return id;
@@ -59,6 +63,24 @@ public class UserAssemblaDto {
 
 	public void setPhone(String phone) {
 		this.phone = phone;
+	}
+
+	@XmlElement
+	public String getPicture() {
+		return picture;
+	}
+
+	public void setPicture(String picture) {
+		this.picture = picture;
+	}
+
+	@XmlElement
+	public String getOrganization() {
+		return organization;
+	}
+
+	public void setOrganization(String organization) {
+		this.organization = organization;
 	}
 
 }
