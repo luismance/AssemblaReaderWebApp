@@ -38,35 +38,34 @@ class TicketItem extends React.Component {
     var ticketChanges = "";
 
     if (this.state.ticketChanges instanceof Array) {
-      var ticketChangesArray = this.state.ticketChanges
-        .slice(0)
-        .reverse()
-        .map((ticketChange, i) => {
-          if (ticketChange["ticket-changes"].includes("--- []")) {
-            return "";
-          } else {
-            var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
-            var finalTicketChanges = "";
-            var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
-            for (var i = 1; i < formattedTicketChangesArray.length; i++) {
-              var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
-              finalTicketChanges += ">"+ticketCommentItem[0].replace("_id", "").replace("_", " ") + " : " + ticketCommentItem[1] + " => " + ticketCommentItem[2];
-              if (i < formattedTicketChangesArray.length) {
-                finalTicketChanges += "\n";
-              }
+      var ticketChangesArray = this.state.ticketChanges.map((ticketChange, i) => {
+        var hasViolation = ticketChange["has-violation"];
+        if (ticketChange["ticket-changes"].includes("--- []")) {
+          return "";
+        } else {
+          var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
+          var finalTicketChanges = "";
+          var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
+          for (var i = 1; i < formattedTicketChangesArray.length; i++) {
+            var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
+            finalTicketChanges += ">" + ticketCommentItem[0].replace("_id", "").replace("_", " ") + " : " + ticketCommentItem[1] + " => " + ticketCommentItem[2];
+            if (i < formattedTicketChangesArray.length) {
+              finalTicketChanges += "\n";
             }
-
-            return (
-              <a href="#" class="list-group-item">
-                {finalTicketChanges}
-              </a>
-            );
           }
-        });
+
+          return (
+            <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")} style={{ marginLeft: "25px"  }}>
+              {finalTicketChanges}
+            </a>
+          );
+        }
+      });
 
       ticketChanges = ticketChangesArray;
     } else {
       var ticketChange = this.state.ticketChanges;
+      var hasViolation = ticketChange["has-violation"];
       if (ticketChange["ticket-changes"].includes("--- []")) {
         ticketChange = "";
       } else {
@@ -75,14 +74,14 @@ class TicketItem extends React.Component {
         var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
         for (var i = 1; i < formattedTicketChangesArray.length; i++) {
           var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
-          finalTicketChanges += ticketCommentItem[0] + " : " + ticketCommentItem[1] + " => " + ticketCommentItem[2];
+          finalTicketChanges += ticketCommentItem[0].replace("\n", "") + " : " + ticketCommentItem[1].replace("\n", "") + " => " + ticketCommentItem[2].replace("\n", "");
           if (i < formattedTicketChangesArray.length) {
-            finalTicketChanges += "\n";
+            finalTicketChanges += "||";
           }
         }
 
-        ticketChange = (
-          <a href="#" class="list-group-item">
+        return (
+          <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")}>
             {finalTicketChanges}
           </a>
         );
@@ -97,6 +96,7 @@ class TicketItem extends React.Component {
       <div class="panel panel-default">
         <a class="list-group-item" data-toggle="collapse" href={"#collapse" + this.props.number}>
           {this.props.summary}
+          {this.props.ticketType || this.props.ticketType != null ? "[" + this.props.ticketType + "]" : ""}
           <span class="badge">{this.props.number}</span>
         </a>
         <div class="panel-collapse collapse" id={"collapse" + this.props.number}>
@@ -118,7 +118,9 @@ class TicketList extends React.Component {
   }
 
   render() {
-    const listItems = this.props.tickets.map((ticket, i) => <TicketItem id={ticket.id} summary={ticket.summary} number={ticket.number} spaceId={ticket["space-id"]} />);
+    const listItems = this.props.tickets.map((ticket, i) => (
+      <TicketItem id={ticket.id} summary={ticket.summary} number={ticket.number} spaceId={ticket["space-id"]} ticketType={ticket["custom-fields"].type} />
+    ));
     return (
       <div id="ticketDiv" style={{ marginTop: "10px" }}>
         {listItems}

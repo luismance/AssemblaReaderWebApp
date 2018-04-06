@@ -6,7 +6,6 @@ public class DoubleAdapter extends XmlAdapter<String, Double> {
 
 	@Override
 	public Double unmarshal(String v) throws Exception {
-		System.out.println("Unmarshall : " + v);
 		if (v.equalsIgnoreCase("null"))
 			return null;
 

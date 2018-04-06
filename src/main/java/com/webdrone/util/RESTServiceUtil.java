@@ -32,12 +32,10 @@ public class RESTServiceUtil {
 
 	private static String REQUEST_ACCESS_TOKEN_URL = "https://api.assembla.com/token?grant_type=refresh_token&refresh_token=";
 
-	public static TicketListAssemblaDto convertTicketListXml(String spaceId, int ticketsPerPage, int page, String bearerToken) {
-		String ticketsXml = RESTServiceUtil
-				.sendGET(
-						"https://api.assembla.com/v1/spaces/" + spaceId + "/tickets.xml?per_page="
-								+ ticketsPerPage + "&page=" + page,
-						true, "Bearer " + bearerToken);
+	public static TicketListAssemblaDto convertTicketListXml(String spaceId, int ticketsPerPage, int page,
+			String bearerToken) {
+		String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + spaceId
+				+ "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + bearerToken);
 
 		JAXBContext jxb;
 		try {
@@ -45,28 +43,26 @@ public class RESTServiceUtil {
 
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
-			
-			
 			unmarshaller.setEventHandler(new ValidationEventHandler() {
 				public boolean handleEvent(ValidationEvent event) {
 					throw new RuntimeException(event.getMessage(), event.getLinkedException());
 				}
 			});
-			
+
 			TicketListAssemblaDto ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller
 					.unmarshal(new StringReader(ticketsXml));
-			
+
 			return ticketListAssemblaDto;
 		} catch (JAXBException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
-	
-	public static MilestoneAssemblaDto convertMilestonXml(String spaceId, String milestoneExternalRefId, String bearerToken) {
+
+	public static MilestoneAssemblaDto convertMilestonXml(String spaceId, String milestoneExternalRefId,
+			String bearerToken) {
 		String milestoneXml = RESTServiceUtil.sendGET(
-				"https://api.assembla.com/v1/spaces/" + spaceId + "/milestones/"
-						+ milestoneExternalRefId + ".xml",
+				"https://api.assembla.com/v1/spaces/" + spaceId + "/milestones/" + milestoneExternalRefId + ".xml",
 				true, "Bearer " + bearerToken);
 
 		JAXBContext jxb;
@@ -74,23 +70,23 @@ public class RESTServiceUtil {
 			jxb = JAXBContext.newInstance(MilestoneAssemblaDto.class);
 
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
-			
+
 			unmarshaller.setEventHandler(new ValidationEventHandler() {
 				public boolean handleEvent(ValidationEvent event) {
 					throw new RuntimeException(event.getMessage(), event.getLinkedException());
 				}
 			});
-			
+
 			MilestoneAssemblaDto milestoneAssemblaDto = (MilestoneAssemblaDto) unmarshaller
 					.unmarshal(new StringReader(milestoneXml));
-			
+
 			return milestoneAssemblaDto;
 		} catch (JAXBException e) {
 			e.printStackTrace();
 			return null;
 		}
 	}
-	
+
 	public static User convertUserXml(String userExternalRefId, String bearerToken) {
 		String userXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/users/" + userExternalRefId + ".xml",
 				true, "Bearer " + bearerToken);
@@ -100,16 +96,17 @@ public class RESTServiceUtil {
 			jxb = JAXBContext.newInstance(UserAssemblaDto.class);
 
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
-			
+
 			unmarshaller.setEventHandler(new ValidationEventHandler() {
 				public boolean handleEvent(ValidationEvent event) {
 					throw new RuntimeException(event.getMessage(), event.getLinkedException());
 				}
 			});
-			
+
 			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userXml));
-			
-			User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(), "bearer_token", "refresh_token", userAssemblaDto.getName(), userAssemblaDto.getEmail(), "");
+
+			User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(),
+					"bearer_token", "refresh_token", userAssemblaDto.getName(), userAssemblaDto.getEmail(), "");
 			return user;
 		} catch (JAXBException e) {
 			e.printStackTrace();
@@ -140,7 +137,8 @@ public class RESTServiceUtil {
 			}
 
 			responseCode = connection.getResponseCode() + "";
-			System.out.println("Response Code : " + connection.getResponseCode());
+			System.out.println("Response Code : " + connection.getResponseCode() + ", URI : " + uri + ", Method : "
+					+ method.name());
 			InputStream xml = connection.getInputStream();
 
 			java.util.Scanner s = new java.util.Scanner(xml).useDelimiter("\\A");

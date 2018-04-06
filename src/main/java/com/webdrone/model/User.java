@@ -32,7 +32,7 @@ public class User extends BaseModel {
 	@Column(name = "NAME", length = 255, nullable = false)
 	private String name;
 
-	@Column(name = "EMAIL", length = 255, nullable = false)
+	@Column(name = "EMAIL", length = 255, nullable = true)
 	private String email;
 
 	@Column(name = "PHONE_NUM", length = 255, nullable = true)

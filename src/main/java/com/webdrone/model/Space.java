@@ -38,7 +38,7 @@ public class Space extends RemoteEntity {
 	@Column(name = "DEFAULT_SHOW_PAGE", length = 255, nullable = true)
 	private String defaultShowPage;
 
-	@Column(name = "TABS_ORDER", length = 10000, nullable = false)
+	@Column(name = "TABS_ORDER", length = 5000, nullable = false)
 	private String tabsOrder;
 
 	@ManyToOne
@@ -55,7 +55,7 @@ public class Space extends RemoteEntity {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date commercialFrom = new Date();
 
-	@Column(name = "BANNER_PATH", length = 10000)
+	@Column(name = "BANNER_PATH", length = 5000)
 	private String bannerPath;
 
 	@Column(name = "BANNER_HEIGHT")
@@ -64,10 +64,10 @@ public class Space extends RemoteEntity {
 	@Column(name = "BANNER_TEXT", length = 255)
 	private String bannerText;
 
-	@Column(name = "BANNER_LINK", length = 10000)
+	@Column(name = "BANNER_LINK", length = 5000)
 	private String bannerLink;
 
-	@Column(name = "STYLE", length = 10000)
+	@Column(name = "STYLE", length = 5000)
 	private String style;
 
 	@Column(name = "STATUS")

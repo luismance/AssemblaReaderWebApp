@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -17,7 +18,7 @@ public class Workflow extends BaseModel {
 	@Column(name = "NAME", length = 255, nullable = false)
 	private String name;
 
-	@OneToMany(mappedBy = "workflow")
+	@OneToMany(mappedBy = "workflow", fetch = FetchType.EAGER)
 	private List<WorkflowTransition> workflowTransitions = new ArrayList<WorkflowTransition>();
 
 	public Workflow() {

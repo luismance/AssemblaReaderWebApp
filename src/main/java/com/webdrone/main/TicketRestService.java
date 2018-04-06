@@ -1,7 +1,13 @@
 package com.webdrone.main;
 
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -38,6 +44,8 @@ import com.webdrone.service.UserService;
 import com.webdrone.service.WorkflowService;
 import com.webdrone.service.WorkflowTransitionInstanceService;
 import com.webdrone.service.WorkflowTransitionService;
+import com.webdrone.util.ExpressionLanguageResultEnum;
+import com.webdrone.util.ExpressionLanguageUtils;
 import com.webdrone.util.RESTServiceUtil;
 import com.webdrone.util.UserAuthResult;
 
@@ -116,77 +124,86 @@ public class TicketRestService {
 			}
 
 			Object assignedObj = userService.findByExternalRefId(User.class, ticketAssemblaDto.getAssignedToId());
-			User assignedTo = assignedObj != null ? (User) assignedObj
-					: RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(),
-							valResult.getUser().getBearerToken());
+			User assignedTo = null;
 
-			if (assignedObj == null) {
-				userService.create(assignedTo);
-			} else {
-				userService.update(assignedTo);
+			if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
+				assignedTo = assignedObj != null ? (User) assignedObj
+						: RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(),
+								valResult.getUser().getBearerToken());
+
+				if (assignedObj == null) {
+					userService.create(assignedTo);
+				} else {
+					userService.update(assignedTo);
+				}
 			}
 			/*
 			 * START : MILESTONE SYNC
 			 */
 
-			MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(spaceId,
-					ticketAssemblaDto.getMilestoneId(), valResult.getUser().getBearerToken());
+			Milestone milestone = null;
 
-			if (milestoneAssemblaDto == null) {
-				return Response.status(500)
-						.entity("An error occured while trying to retrieve milestone detail for ticket id : "
-								+ ticketAssemblaDto.getId())
-						.build();
+			if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
+				MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(spaceId,
+						ticketAssemblaDto.getMilestoneId(), valResult.getUser().getBearerToken());
+
+				if (milestoneAssemblaDto == null) {
+					return Response.status(500)
+							.entity("An error occured while trying to retrieve milestone detail for ticket id : "
+									+ ticketAssemblaDto.getId())
+							.build();
+				}
+
+				Object milestonObj = milestoneService.findByExternalRefId(Milestone.class,
+						ticketAssemblaDto.getMilestoneId());
+				milestone = milestonObj != null ? (Milestone) milestonObj : null;
+
+				if (milestone == null) {
+					milestone = new Milestone();
+				}
+
+				milestone.setExternalRefId(milestoneAssemblaDto.getId());
+				milestone.setPlannerType(milestoneAssemblaDto.getPlannerType());
+				milestone.setDescription(milestoneAssemblaDto.getDescription());
+				milestone.setReleaseNotes(milestoneAssemblaDto.getReleaseNotes());
+				milestone.setPrettyReleaseLevel(milestoneAssemblaDto.getPrettyReleaseLevel());
+				milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null
+						? milestoneAssemblaDto.getCompletedDate().toDate() : null);
+				milestone.setDueDate(
+						milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
+				milestone.setCompleted(milestoneAssemblaDto.isCompleted());
+				milestone.setTitle(milestoneAssemblaDto.getTitle());
+
+				Object userCreatedObj = userService.findByExternalRefId(User.class,
+						milestoneAssemblaDto.getCreatedBy());
+				User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj
+						: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(),
+								valResult.getUser().getBearerToken());
+
+				if (userCreatedObj == null) {
+					userService.create(mUserCreatedBy);
+				}
+
+				Object userUpdatedObj = userService.findByExternalRefId(User.class,
+						milestoneAssemblaDto.getUpdatedBy());
+				User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj
+						: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(),
+								valResult.getUser().getBearerToken());
+
+				if (userUpdatedObj == null) {
+					userService.create(mUserUpdatedBy);
+				}
+
+				milestone.setCreatedBy(mUserCreatedBy);
+				milestone.setUpdatedBy(mUserUpdatedBy);
+
+				milestone.setSpace(space);
+				if (milestonObj == null) {
+					milestoneService.create(milestone);
+				} else {
+					milestoneService.update(milestone);
+				}
 			}
-
-			Object milestonObj = milestoneService.findByExternalRefId(Milestone.class,
-					ticketAssemblaDto.getMilestoneId());
-			Milestone milestone = milestonObj != null ? (Milestone) milestonObj : null;
-
-			if (milestone == null) {
-				milestone = new Milestone();
-			}
-
-			milestone.setExternalRefId(milestoneAssemblaDto.getId());
-			milestone.setPlannerType(milestoneAssemblaDto.getPlannerType());
-			milestone.setDescription(milestoneAssemblaDto.getDescription());
-			milestone.setReleaseNotes(milestoneAssemblaDto.getReleaseNotes());
-			milestone.setPrettyReleaseLevel(milestoneAssemblaDto.getPrettyReleaseLevel());
-			milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null
-					? milestoneAssemblaDto.getCompletedDate().toDate() : null);
-			milestone.setDueDate(
-					milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
-			milestone.setCompleted(milestoneAssemblaDto.isCompleted());
-			milestone.setTitle(milestoneAssemblaDto.getTitle());
-
-			Object userCreatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getCreatedBy());
-			User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj
-					: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(),
-							valResult.getUser().getBearerToken());
-
-			if (userCreatedObj == null) {
-				userService.create(mUserCreatedBy);
-			}
-
-			Object userUpdatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getCreatedBy());
-			User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj
-					: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(),
-							valResult.getUser().getBearerToken());
-
-			if (userUpdatedObj == null) {
-				userService.create(mUserUpdatedBy);
-			}
-
-			milestone.setCreatedBy(mUserCreatedBy);
-			milestone.setUpdatedBy(mUserUpdatedBy);
-
-			milestone.setSpace(space);
-			if (milestonObj == null) {
-				milestoneService.create(milestone);
-			} else {
-				milestoneService.update(milestone);
-			}
-
 			/*
 			 * END : MILESTONE SYNC
 			 */
@@ -197,15 +214,16 @@ public class TicketRestService {
 			 * START : TICKET SYNC
 			 */
 			if (currentTicket != null) {
-				currentTicket.setAssignedTo(assignedTo);
+				if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
+					currentTicket.setAssignedTo(assignedTo);
+				}
 				currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null
 						? ticketAssemblaDto.getCompletedDate().toDate() : null);
-				currentTicket.setDescription(
-						new String(ticketAssemblaDto.getDescription().getBytes(StandardCharsets.UTF_8)));
+				currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
 				currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
 				currentTicket.setExternalRefId(ticketAssemblaDto.getId());
 				currentTicket.setImportance(ticketAssemblaDto.getImportance());
-				// currentTicket.setMilestone(milestone);
+				currentTicket.setMilestone(milestone);
 				currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
 				currentTicket.setRemotelyCreated(
 						ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
@@ -346,6 +364,7 @@ public class TicketRestService {
 		try {
 
 			TicketChangesListDto ticketChangesList = new TicketChangesListDto();
+			TicketChangesListDto ticketChangesDtoResponse = new TicketChangesListDto();
 
 			String ticketChangesXml = RESTServiceUtil
 					.sendGET(
@@ -371,7 +390,21 @@ public class TicketRestService {
 				// Temporary Workflow Transition
 				WorkflowTransition wt = workflowTransitionService.listAll(WorkflowTransition.class).get(0);
 
-				for (TicketChangesDto ticketChanges : ticketChangesList.getTicketChanges()) {
+				Map<String, String> fieldMap = new HashMap<String, String>();
+				fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+				fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+
+				// Reverse list because assembla returns the changes in reverse
+				List<TicketChangesDto> ticketChangesReversed = new ArrayList<TicketChangesDto>();
+				List<TicketChangesDto> newTicketChangesList = ticketChangesList.getTicketChanges();
+
+				for (int i = newTicketChangesList.size() - 1; i >= 0; i--) {
+					ticketChangesReversed.add(newTicketChangesList.get(i));
+				}
+				List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null
+						? ticket.getWorkflow().getWorkflowTransitions() : new ArrayList<WorkflowTransition>();
+				int currentWorkflow = 0;
+				for (TicketChangesDto ticketChanges : ticketChangesReversed) {
 					WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTranstionInstanceService
 							.findByExternalRefId(WorkflowTransitionInstance.class, ticketChanges.getId());
 
@@ -390,24 +423,70 @@ public class TicketRestService {
 
 					wti.setWorkflowTransition(wt);
 
-					System.out.println("Ticket Changes : " + ticketChanges.getTicketChanges());
-
 					if (ticketChanges.getTicketChanges().contains("- - ")) {
-						String[] fields = ticketChanges.getTicketChanges().split(" - -");
+						String[] fields = ticketChanges.getTicketChanges().replace("---\n", "").split("- - ");
 
 						StringBuilder originState = new StringBuilder();
 						StringBuilder targetState = new StringBuilder();
 
-						for (int i = 0; i < fields.length; i++) {
-							String fieldName = fields[i].split("  - ")[0].replace("---\n- - ", "");
-							String previousValue = fields[i].split("  - ")[1];
-							String newValue = fields[i].split("  - ")[2];
+						for (int i = 1; i < fields.length; i++) {
+							String[] fieldArray = fields[i].split("  - ");
+							String fieldName = fieldArray[0].replace("- - ", "").replace("\n", "");
+							String previousValue = fieldArray[1].replace("\n", "");
+							String newValue = fieldArray[2].replace("\n", "");
 
 							originState.append(fieldName).append(":").append(previousValue)
 									.append(System.getProperty("line.separator"));
 							targetState.append(fieldName).append(":").append(newValue)
 									.append(System.getProperty("line.separator"));
 
+							String previousValueBeforeDate = previousValue;
+							String newValueBeforeDate = newValue;
+							if (currentWorkflow < workflowTransitions.size() && workflowTransitions.size() > 0) {
+								if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+									previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime())
+											+ "";
+								}
+
+								if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+									newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
+								}
+								System.out
+										.println("Previous Value : " + previousValue + " : " + previousValueBeforeDate);
+								System.out.println("New Value : " + newValue + " : " + newValueBeforeDate);
+
+								if (fieldMap.get("old_" + fieldName) != null
+										&& fieldMap.get("new_" + fieldName) != null) {
+									fieldMap = new HashMap<String, String>();
+									currentWorkflow++;
+									if (currentWorkflow > workflowTransitions.size()) {
+										ticketChanges.setHasViolation(true);
+									}
+									fieldMap.put("old_" + fieldName, previousValue);
+									fieldMap.put("new_" + fieldName, newValue);
+								} else {
+									fieldMap.put("old_" + fieldName, previousValue);
+									fieldMap.put("new_" + fieldName, newValue);
+									ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap,
+											workflowTransitions.get(currentWorkflow).getExpressionLanguage());
+
+									if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+										ticketChanges.setHasViolation(true);
+										fieldMap = new HashMap<String, String>();
+										currentWorkflow++;
+									} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+										ticketChanges.setHasViolation(false);
+										fieldMap = new HashMap<String, String>();
+										currentWorkflow++;
+									} else {
+										ticketChanges.setHasViolation(false);
+									}
+								}
+							} else {
+								ticketChanges.setHasViolation(false);
+							}
 							wti.setOriginState(originState.toString());
 							wti.setTargetState(targetState.toString());
 						}
@@ -421,16 +500,17 @@ public class TicketRestService {
 					} else {
 						workflowTranstionInstanceService.create(wti);
 					}
-
-					ticketChanges.setHasViolation(true);
-
 				}
+
+				ticketChangesDtoResponse.setTicketChanges(ticketChangesReversed);
 
 			}
 
-			return Response.status(200).entity(ticketChangesList).build();
+			return Response.status(200).entity(ticketChangesDtoResponse).build();
 
 		} catch (JAXBException e) {
+			e.printStackTrace();
+		} catch (ParseException e) {
 			e.printStackTrace();
 		}
 		return Response.status(500).entity("An error occured while trying to retrieve data").build();

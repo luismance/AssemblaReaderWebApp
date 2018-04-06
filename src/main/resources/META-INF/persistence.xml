@@ -6,14 +6,13 @@
 
 	<persistence-unit name="webdroneAssembla" transaction-type="JTA">
 		<provider>org.hibernate.ejb.HibernatePersistence</provider>
-		<jta-data-source>java:/MariaDB</jta-data-source>
-		<class>com.webdrone.model.User</class>
+		<jta-data-source>java:/WebDroneDB</jta-data-source>
 		<properties>
 			<property name="hibernate.archive.autodetection" value="class" />
 			<property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5InnoDBDialect" />
 			<property name="hibernate.hbm2ddl.auto" value="create-drop" />
-			<property name="hibernate.cache.use_second_level_cache" value="true" />
-			<property name="hibernate.cache.use_minimal_puts" value="true" />
+			<property name="hibernate.format_sql" value="true" />
+			<property name="connection.url" value="jdbc:mariadb://localhost:3306/webdrone_assembla" />
 		</properties>
 	</persistence-unit>
 </persistence>
