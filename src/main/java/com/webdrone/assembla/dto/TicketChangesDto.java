@@ -2,8 +2,11 @@ package com.webdrone.assembla.dto;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.joda.time.DateTime;
+
+import com.webdrone.util.DateAdapter;
 
 @XmlRootElement(name = "ticket-comment")
 public class TicketChangesDto {
@@ -64,6 +67,7 @@ public class TicketChangesDto {
 		this.userId = userId;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "created-on")
 	public DateTime getCreatedOn() {
 		return createdOn;
@@ -73,6 +77,7 @@ public class TicketChangesDto {
 		this.createdOn = createdOn;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "updated-at")
 	public DateTime getUpdatedAt() {
 		return updatedAt;

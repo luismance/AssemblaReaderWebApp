@@ -2,8 +2,11 @@ package com.webdrone.assembla.dto;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.joda.time.DateTime;
+
+import com.webdrone.util.DateAdapter;
 
 @XmlRootElement(name = "ticket")
 public class TicketAssemblaDto {
@@ -113,6 +116,7 @@ public class TicketAssemblaDto {
 		this.priority = priority;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "completed-date")
 	public DateTime getCompletedDate() {
 		return completedDate;
@@ -131,6 +135,7 @@ public class TicketAssemblaDto {
 		this.componentId = componentId;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "created-on")
 	public DateTime getCreatedOn() {
 		return createdOn;
@@ -221,6 +226,7 @@ public class TicketAssemblaDto {
 		this.storyImportance = storyImportance;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "updated-at")
 	public DateTime getUpdatedAt() {
 		return updatedAt;
@@ -320,6 +326,7 @@ public class TicketAssemblaDto {
 		this.hierarchyType = hierarchyType;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "due-date")
 	public DateTime getDueDate() {
 		return dueDate;

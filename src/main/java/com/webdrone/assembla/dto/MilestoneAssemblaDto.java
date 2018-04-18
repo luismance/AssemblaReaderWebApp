@@ -6,6 +6,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.joda.time.DateTime;
 
+import com.webdrone.util.DateAdapter;
 import com.webdrone.util.DoubleAdapter;
 
 @XmlRootElement(name = "milestone")
@@ -56,6 +57,7 @@ public class MilestoneAssemblaDto {
 		this.id = id;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "start-date")
 	public DateTime getStartDate() {
 		return startDate;
@@ -65,6 +67,7 @@ public class MilestoneAssemblaDto {
 		this.startDate = startDate;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "due-date")
 	public DateTime getDueDate() {
 		return dueDate;
@@ -102,6 +105,7 @@ public class MilestoneAssemblaDto {
 		this.userId = userId;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "created-at")
 	public DateTime getCreatedAt() {
 		return createdAt;
@@ -147,6 +151,7 @@ public class MilestoneAssemblaDto {
 		this.completed = completed;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "completed-date")
 	public DateTime getCompletedDate() {
 		return completedDate;
@@ -156,6 +161,7 @@ public class MilestoneAssemblaDto {
 		this.completedDate = completedDate;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "updated-at")
 	public DateTime getUpdatedAt() {
 		return updatedAt;

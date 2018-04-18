@@ -64,9 +64,9 @@ public class SpaceRestService {
 
 			unmarshaller.setEventHandler(new ValidationEventHandler() {
 				public boolean handleEvent(ValidationEvent event) {
-					if(event.getMessage().contains("unexpected element"))
-			            return true;
-			        return false;
+					if (event.getMessage().contains("unexpected element"))
+						return true;
+					return false;
 				}
 			});
 
@@ -112,7 +112,8 @@ public class SpaceRestService {
 					currentSpace.setRemotelyUpdated(
 							spaceAssemblaDto.getUpdatedAt() != null ? spaceAssemblaDto.getUpdatedAt().toDate() : null);
 					currentSpace.setRestricted(spaceAssemblaDto.isRestricted());
-					currentSpace.setRestrictedDate(spaceAssemblaDto.getRestrictedDate().toDate());
+					currentSpace.setRestrictedDate(spaceAssemblaDto.getRestrictedDate() != null
+							? spaceAssemblaDto.getRestrictedDate().toDate() : null);
 					currentSpace.setStatus(spaceAssemblaDto.getStatus());
 					currentSpace.setStyle(spaceAssemblaDto.getStyle());
 					currentSpace.setTabsOrder(spaceAssemblaDto.getTabsOrder());

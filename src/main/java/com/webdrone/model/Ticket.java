@@ -114,6 +114,9 @@ public class Ticket extends RemoteEntity {
 				ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : new Date());
 		this.setRemotelyUpdated(
 				ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : new Date());
+
+		System.out.println("Remotely Created : " + ticketAssemblaDto.getCreatedOn());
+		System.out.println("Remotely Updated : " + ticketAssemblaDto.getUpdatedAt());
 	}
 
 	public Space getSpace() {

@@ -5,8 +5,11 @@ import java.util.Date;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.joda.time.DateTime;
+
+import com.webdrone.util.DateAdapter;
 
 @XmlRootElement(name = "space")
 public class SpaceAssemblaDto {
@@ -152,6 +155,7 @@ public class SpaceAssemblaDto {
 		this.teamTabRole = teamTabRole;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "created-at")
 	public DateTime getCreatedAt() {
 		return createdAt;
@@ -161,6 +165,7 @@ public class SpaceAssemblaDto {
 		this.createdAt = createdAt;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "updated-at")
 	public DateTime getUpdatedAt() {
 		return updatedAt;
@@ -206,6 +211,7 @@ public class SpaceAssemblaDto {
 		this.restricted = restricted;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "restricted-date")
 	public DateTime getRestrictedDate() {
 		return restrictedDate;
@@ -215,6 +221,7 @@ public class SpaceAssemblaDto {
 		this.restrictedDate = restrictedDate;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "commercial-from")
 	public DateTime getCommercialFrom() {
 		return commercialFrom;
@@ -332,6 +339,7 @@ public class SpaceAssemblaDto {
 		this.canApply = canApply;
 	}
 
+	@XmlJavaTypeAdapter(DateAdapter.class)
 	@XmlElement(name = "last-payer-changed-at")
 	public DateTime getLastPayerChangedAt() {
 		return lastPayerChangedAt;

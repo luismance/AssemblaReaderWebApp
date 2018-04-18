@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -30,6 +31,7 @@ import com.webdrone.assembla.dto.TicketAssemblaDto;
 import com.webdrone.assembla.dto.TicketChangesDto;
 import com.webdrone.assembla.dto.TicketChangesListDto;
 import com.webdrone.assembla.dto.TicketListAssemblaDto;
+import com.webdrone.job.TicketJobService;
 import com.webdrone.model.Milestone;
 import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
@@ -366,11 +368,10 @@ public class TicketRestService {
 			TicketChangesListDto ticketChangesList = new TicketChangesListDto();
 			TicketChangesListDto ticketChangesDtoResponse = new TicketChangesListDto();
 
-			String ticketChangesXml = RESTServiceUtil
-					.sendGET(
-							"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/"
-									+ ticketNumber + "/ticket_comments.xml",
-							true, "Bearer " + valResult.getUser().getBearerToken());
+			String ticketChangesXml = RESTServiceUtil.sendGET(
+					"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber
+							+ "/ticket_comments.xml?per_page=100",
+					true, "Bearer " + valResult.getUser().getBearerToken());
 
 			if (!ticketChangesXml.isEmpty()) {
 				JAXBContext jxb = JAXBContext.newInstance(TicketChangesListDto.class);
@@ -453,6 +454,9 @@ public class TicketRestService {
 									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 									newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
 								}
+
+								fieldMap.put("new_update_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+
 								System.out
 										.println("Previous Value : " + previousValue + " : " + previousValueBeforeDate);
 								System.out.println("New Value : " + newValue + " : " + newValueBeforeDate);
@@ -514,5 +518,15 @@ public class TicketRestService {
 			e.printStackTrace();
 		}
 		return Response.status(500).entity("An error occured while trying to retrieve data").build();
+	}
+
+	@POST
+	@Path("/triggerTicketSync")
+	public Response triggerTicketSync(@HeaderParam("Authorization") String authorization,
+			@QueryParam("space_id") String spaceId) {
+
+		TicketJobService ticketJobService = new TicketJobService(authorization, spaceId);
+		ticketJobService.start();
+		return Response.status(200).entity("Okay").build();
 	}
 }
