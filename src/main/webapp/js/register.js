@@ -5,7 +5,6 @@ app.controller('myCtrl', ['$scope', '$http', '$window', '$location','$sessionSto
 	$scope.confirmpassword = "";
 
 	$scope.registerUser = function() {
-
 		var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>"+$scope.username+"</password><username>"+$scope.password +"</username></user>";
 		var restUrl = $location.absUrl().split("register")[0] + "rest/user/create";
 		$http.post(restUrl, requestData, {headers:{'Content-Type': 'application/xml'}}).then(function (response) {

@@ -19,7 +19,6 @@ public class EntityManagerHelper {
 
 		if (em == null) {
 			em = emf.createEntityManager();
-			// set your flush mode here
 			threadLocal.set(em);
 		}
 		return em;

@@ -9,7 +9,7 @@ class TicketItem extends React.Component {
 
   componentDidMount() {
     var thisComp = this;
-    var userData = sessionStorage.getItem("userData");
+    var userData = window.localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
 
@@ -143,7 +143,7 @@ class SpaceList extends React.Component {
 
   componentDidMount() {
     var thisComp = this;
-    var userData = sessionStorage.getItem("userData");
+    var userData = window.localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
 
@@ -174,7 +174,7 @@ class SpaceList extends React.Component {
 
   updateTickets() {
     var thisComp = this;
-    var userData = sessionStorage.getItem("userData");
+    var userData = window.localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
     var perPage = Number(getURLParameter("per_page"));
@@ -188,8 +188,8 @@ class SpaceList extends React.Component {
       curPage = 1;
     }
 
-    sessionStorage.setItem("itemPerPage", perPage);
-    sessionStorage.setItem("curPage", curPage);
+    window.localStorage.setItem("itemPerPage", perPage);
+    window.localStorage.setItem("curPage", curPage);
 
     if (thisComp.state.currentSpaceId) {
       var urlRequest = "rest/ticket/list?space_id=" + thisComp.state.currentSpaceId + "&per_page=" + perPage + "&page=" + curPage;
@@ -226,7 +226,7 @@ class SpaceList extends React.Component {
           var ticketCount = x2js.xml_str2json(data);
 
           console.log("Update Ticket Count : " + ticketCount.spaceTicketCount.count);
-          sessionStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
+          window.localStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
           thisComp.setState({ tickets });
         });
       });
@@ -241,15 +241,15 @@ class SpaceList extends React.Component {
   }
 
   logout() {
-    sessionStorage.clear();
-    window.location.href = "/AssemblaReader/login.html";
+    window.localStorage.clear();
+    window.location.href = "/assemblareader/login.html";
   }
 
   render() {
     var spaceList = this.state.spaces.map((space, i) => (
       //<li className="nav-item " key={space.id} onClick={this.updateSpace.bind(this, space.id)}>
       <li className="nav-item " key={space.id}>
-        <a href={"/AssemblaReader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? "active" : "")}>
+        <a href={"/assemblareader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? "active" : "")}>
           {space.name}
         </a>
       </li>
@@ -261,22 +261,22 @@ class SpaceList extends React.Component {
           Tickets per page
         </button>
         <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
+          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
             10
           </a>
-          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
+          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
             15
           </a>
-          <a className="dropdown-item" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
+          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
             20
           </a>
         </div>
       </div>
     );
 
-    var curPage = Number(sessionStorage.getItem("curPage"));
-    var perPage = Number(sessionStorage.getItem("itemPerPage"));
-    var totalTicketCount = Number(sessionStorage.getItem("totalTicketCount"));
+    var curPage = Number(window.localStorage.getItem("curPage"));
+    var perPage = Number(window.localStorage.getItem("itemPerPage"));
+    var totalTicketCount = Number(window.localStorage.getItem("totalTicketCount"));
     var totalTicketCountPerPage = totalTicketCount / perPage;
     var maxPage = totalTicketCountPerPage == 0 ? 1 : totalTicketCountPerPage;
     maxPage = totalTicketCountPerPage * perPage == totalTicketCount || totalTicketCount < perPage ? maxPage : maxPage + 1;
@@ -290,7 +290,7 @@ class SpaceList extends React.Component {
 
     var firstPage = (
       <li className="page-item">
-        <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationFirst}>
+        <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationFirst}>
           {paginationFirst}
         </a>
       </li>
@@ -300,7 +300,7 @@ class SpaceList extends React.Component {
         ""
       ) : (
         <li className="page-item">
-          <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationSecond}>
+          <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationSecond}>
             {paginationSecond}
           </a>
         </li>
@@ -310,7 +310,7 @@ class SpaceList extends React.Component {
         ""
       ) : (
         <li className="page-item" className="hidden">
-          <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationThird}>
+          <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationThird}>
             {paginationThird}
           </a>
         </li>
@@ -320,7 +320,7 @@ class SpaceList extends React.Component {
       <nav aria-label="Page navigation example">
         <ul className="pagination">
           <li className="page-item">
-            <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
+            <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
               <span aria-hidden="true">&laquo;</span>
               <span className="sr-only">Previous</span>
             </a>
@@ -329,7 +329,7 @@ class SpaceList extends React.Component {
           {secondPage}
           {thirdPage}
           <li className="page-item">
-            <a className="page-link" href={"/AssemblaReader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
+            <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
               <span aria-hidden="true">&raquo;</span>
               <span className="sr-only">Next</span>
             </a>

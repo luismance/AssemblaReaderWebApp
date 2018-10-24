@@ -5,13 +5,13 @@ class LoginForm extends React.Component {
   }
 
   componentDidMount(){
-    console.log("User Data : " + JSON.stringify(sessionStorage.getItem("userData")));
+    console.log("User Data : " + JSON.stringify(window.localStorage.getItem("userData")));
   }
 
   loginUser(){
 
-    if(sessionStorage.getItem("userData")){
-      window.location.href = "/AssemblaReader/index.html";
+    if(window.localStorage.getItem("userData")){
+      window.location.href = "/assemblareader/index.html";
     }
 
     var userName = $('#username').val();
@@ -30,8 +30,8 @@ class LoginForm extends React.Component {
       success: function(data){
         var x2js = new X2JS();
         var userJson = x2js.xml_str2json(data);
-        sessionStorage.setItem("userData", JSON.stringify(userJson));
-        window.location.href = "/AssemblaReader/index.html";
+        window.localStorage.setItem("userData", JSON.stringify(userJson));
+        window.location.href = "/assemblareader/index.html";
       },
       error: function(data){
         $("#loginErrorMessage").html("<strong>Error!</strong><br/>"+data.responseText);
@@ -39,6 +39,30 @@ class LoginForm extends React.Component {
       }
     });
   }
+
+  registerUser(e){
+    $.ajax({
+      type: "POST",
+      url: "rest/user/create",
+      headers: {
+        "Content-Type" : "application/xml"
+      },
+      data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
+      dataType: 'text',
+      success: function(data){
+        var x2js = new X2JS();
+        var userJson = x2js.xml_str2json(data);
+        window.localStorage.setItem("userData", JSON.stringify(userJson));
+        console.log("JSON DATA : " + JSON.stringify(window.localStorage.getItem("userData")));
+        window.location.href = "https://api.assembla.com/authorization?client_id=baX24QXs4r56RcacwqjQXA&response_type=code";
+      },
+      error: function(data){
+        console.log("JSON DATA : " + JSON.stringify(data));
+        $("#loginErrorMessage").html("<strong>Error!</strong><br/>"+data.responseText);
+        $("#loginErrorMessage").show();
+      }
+    });
+	}
 
   render(){
     return (
@@ -57,7 +81,8 @@ class LoginForm extends React.Component {
               </div>
               <div className="col-sm-6">
                 Not Registered?
-                <a href="/AssemblaReader/registration.html"><abbr>Register with Assembla</abbr></a>
+                <a  onClick={this.registerUser} ><u><abbr>Register with Assembla</abbr></u></a>
+                <FormButton label="Register with Assembla" buttonType="button" functionCall={this.registerUser} />
               </div>
             </form>
           </div>

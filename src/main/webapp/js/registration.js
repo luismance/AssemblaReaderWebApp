@@ -25,7 +25,7 @@ var registerUser = function(){
         data: requestData,
         dataType: 'text',
         success: function(data){
-            sessionStorage.setItem("userData", data);
+            window.localStorage.setItem("userData", data);
             window.location.href = "https://api.assembla.com/authorization?client_id=baX24QXs4r56RcacwqjQXA&response_type=code";
         },
         error: function(data){
@@ -56,16 +56,16 @@ var validateUsername = function(syntheticEvent){
 }
 
 function registrationForm(props){
-    return React.createElement('form', {}, React.createElement(formHeader, { label : 'Register' }),
+    return React.createElement('form', {}, React.createElement(FormHeader, { label : 'Register' }),
         React.createElement('div', { 'id' : 'registrationErrorMessage' , className : 'alert alert-danger', style : {display:'none'}}),
-        React.createElement(inputText, { inputId : 'username' , name : 'username' , label : 'Username', inputType : 'text', textChangeFunction : validateUsername}),
-        React.createElement(inputText, { inputId : 'password' , name : 'password' ,label : 'Password', inputType : 'password', textChangeFunction : validatePassword}),
+        React.createElement(InputText, { inputId : 'username' , name : 'username' , label : 'Username', inputType : 'text', textChangeFunction : validateUsername}),
+        React.createElement(InputText, { inputId : 'password' , name : 'password' ,label : 'Password', inputType : 'password', textChangeFunction : validatePassword}),
         React.createElement('div', { 'id' : 'confirmpasswordmsg' , className : 'alert alert-danger', style : {display:'none'}}, 'Passwords should be the same'),
-        React.createElement(inputText, { inputId : 'confirmpassword' , name : 'confirmpassword' ,label : 'Confirm Password', inputType : 'password', textChangeFunction : validatePassword}),
+        React.createElement(InputText, { inputId : 'confirmpassword' , name : 'confirmpassword' ,label : 'Confirm Password', inputType : 'password', textChangeFunction : validatePassword}),
         React.createElement('div', {className : 'row'},
-            React.createElement('div' , {className:'col-sm-6'}, React.createElement(formButton , { label : 'Register', functionCall : registerUser, buttonType : 'button'})),
+            React.createElement('div' , {className:'col-sm-6'}, React.createElement(FormButton , { label : 'Register', functionCall : registerUser, buttonType : 'button'})),
             React.createElement('div' , {className:'col-sm-6'}, 'Already Registered?',
-                React.createElement('a' , {'href':'/AssemblaReader/login.html'},
+                React.createElement('a' , {'href':'/assemblareader/login.html'},
                     React.createElement('abbr', {}, 'Login')
                     )
                 )

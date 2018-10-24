@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import javax.ejb.EJBException;
 import javax.inject.Inject;
@@ -53,12 +54,10 @@ public class UserRestService {
 			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
 
 			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
-				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!")
-						.build();
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
 			}
 
-			User result = (User) userService.findUserByUsernameAndPassword(userDto.getUsername(),
-					RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
+			User result = (User) userService.findUserByUsernameAndPassword(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
 
 			if (result != null) {
 				userDto = new UserDto(result);
@@ -80,31 +79,15 @@ public class UserRestService {
 	@Path("/create")
 	public Response createUser(String requestBody) {
 
-		try {
-			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+		Random rand = new Random();
 
-			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+		long n = rand.nextInt(50) + 1;
+		n = n + System.currentTimeMillis();
+		User user = new User("temp_username_" + n, "temp_password" + n, "", "access_token", "", "", "", "");
 
-			if (userService.findUserByUsername(userDto.getUsername()) != null) {
-				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username already used!").build();
-			}
-			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
-				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!")
-						.build();
-			}
-
-			User user = new User(userDto.getUsername(), RESTServiceUtil.encryptToSHA256(userDto.getPassword()), "",
-					"access_token", "", "", "", "");
-
-			User result = (User) userService.create(user);
-			userDto.setId(result.getId());
-			return Response.status(201).entity(userDto).build();
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return Response.status(500).build();
+		User result = (User) userService.create(user);
+		UserDto userDto = new UserDto(user);
+		return Response.status(201).entity(userDto).build();
 	}
 
 	@POST
@@ -113,11 +96,9 @@ public class UserRestService {
 
 		try {
 
-			String authorizationToken = "Basic " + new String(
-					Base64.encodeBase64("baX24QXs4r56RcacwqjQXA:040301aea16521d342ed8de1b9d12c9d".getBytes()));
+			String authorizationToken = "Basic " + new String(Base64.encodeBase64("baX24QXs4r56RcacwqjQXA:040301aea16521d342ed8de1b9d12c9d".getBytes()));
 
-			String response = RESTServiceUtil.sendPOST(REQUEST_REFRESH_TOKEN_URL + requestBody, true,
-					authorizationToken);
+			String response = RESTServiceUtil.sendPOST(REQUEST_REFRESH_TOKEN_URL + requestBody, true, authorizationToken);
 
 			ObjectMapper objMap = new ObjectMapper();
 
@@ -138,6 +119,7 @@ public class UserRestService {
 			user.setRefreshToken(rto.getRefresh_token());
 			user.setName(userAssemblaDto.getName());
 			user.setEmail(userAssemblaDto.getEmail());
+			user.setUsername(userAssemblaDto.getEmail());
 			user.setPhoneNum(userAssemblaDto.getPhone());
 
 			UserDto userDto = new UserDto(user);

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<persistence version="2.0" xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<persistence version="2.0" xmlns="http://java.sun.com/xml/ns/persistence"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="
         http://java.sun.com/xml/ns/persistence
         http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd">
@@ -7,7 +8,19 @@
 	<persistence-unit name="webdroneAssembla" transaction-type="JTA">
 		<provider>org.hibernate.ejb.HibernatePersistence</provider>
 		<jta-data-source>java:/WebDroneDB</jta-data-source>
+		<class>com.webdrone.model.Ticket</class>
+		<class>com.webdrone.model.Milestone</class>
+		<class>com.webdrone.model.Space</class>
+		<class>com.webdrone.model.Workflow</class>
+		<class>com.webdrone.model.WorkflowTransition</class>
+		<class>com.webdrone.model.WorkflowTransitionInstance</class>
+		<class>com.webdrone.model.User</class>
+		<class>com.webdrone.model.Role</class>
+		<class>com.webdrone.model.Notification</class>
+		<class>com.webdrone.model.MaxDelay</class>
+
 		<properties>
+			<property name="javax.persistence.schema-generation.database.action" value="drop-and-create" />
 			<property name="hibernate.archive.autodetection" value="class" />
 			<property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5InnoDBDialect" />
 			<property name="hibernate.hbm2ddl.auto" value="create-drop" />
