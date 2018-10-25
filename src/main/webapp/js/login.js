@@ -18,7 +18,7 @@ class LoginForm extends React.Component {
     var password = $('#password').val();
     var confirmPassword = $('#confirmpassword').val();
 
-    var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>"+userName+"</password><username>"+ password +"</username></user>";
+    var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>"+password+"</password><username>"+ userName +"</username></user>";
     $.ajax({
       type: "POST",
       url: "rest/user/login",

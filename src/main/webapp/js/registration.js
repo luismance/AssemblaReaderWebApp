@@ -25,18 +25,20 @@ class RegistrationForm extends React.Component {
     }
 
     if (isFormValid) {
-      var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>" + userName + "</password><username>" + password + "</username></user>";
+      var requestData = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?><user><password>" + password + "</password><username>" + userName + "</username></user>";
       $.ajax({
         type: "POST",
-        url: "rest/user/create",
+        url: "rest/user/updatePassword",
         headers: {
           "Content-Type": "application/xml"
         },
         data: requestData,
         dataType: 'text',
         success: function(data) {
-          localStorage.setItem("userData", data);
-          window.location.href = "assemblareader/index.html";
+          var x2js = new X2JS();
+          var userJson = x2js.xml_str2json(data);
+          localStorage.setItem("userData", JSON.stringify(userJson));
+          window.location.href = "index.html";
         },
         error: function(data) {
           $("#registrationErrorMessage").html("<strong>Error!</strong>" + data.responseText);

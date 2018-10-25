@@ -143,8 +143,7 @@ class SpaceList extends React.Component {
 
   componentDidMount() {
     var thisComp = this;
-    var userData = localStorage.getItem("userData");
-    var userItem = JSON.parse(userData);
+    var userItem = JSON.parse(localStorage.getItem("userData"));
     var x2js = new X2JS();
 
     $.ajax({

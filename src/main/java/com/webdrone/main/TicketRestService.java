@@ -79,9 +79,7 @@ public class TicketRestService {
 
 	@GET
 	@Path("/list")
-	public Response getTickets(@HeaderParam("Authorization") String authorization,
-			@QueryParam("space_id") String spaceId, @QueryParam("per_page") int ticketsPerPage,
-			@QueryParam("page") int page) {
+	public Response getTickets(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId, @QueryParam("per_page") int ticketsPerPage, @QueryParam("page") int page) {
 
 		if (ticketsPerPage == 0) {
 			ticketsPerPage = 10;
@@ -103,8 +101,7 @@ public class TicketRestService {
 			return Response.status(500).entity("Invalid space id!").build();
 		}
 
-		TicketListAssemblaDto ticketListAssemblaDto = RESTServiceUtil.convertTicketListXml(space.getExternalRefId(),
-				ticketsPerPage, page, valResult.getUser().getBearerToken());
+		TicketListAssemblaDto ticketListAssemblaDto = RESTServiceUtil.convertTicketListXml(space.getExternalRefId(), ticketsPerPage, page, valResult.getUser().getBearerToken());
 
 		if (ticketListAssemblaDto == null) {
 			return Response.status(500).entity("An error occured while trying to retrieve ticket list").build();
@@ -115,9 +112,7 @@ public class TicketRestService {
 			Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
 
 			Object reporterObj = userService.findByExternalRefId(User.class, ticketAssemblaDto.getReporterId());
-			User reporter = reporterObj != null ? (User) reporterObj
-					: RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(),
-							valResult.getUser().getBearerToken());
+			User reporter = reporterObj != null ? (User) reporterObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(), valResult.getUser().getBearerToken());
 
 			if (reporterObj == null) {
 				userService.create(reporter);
@@ -129,9 +124,7 @@ public class TicketRestService {
 			User assignedTo = null;
 
 			if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-				assignedTo = assignedObj != null ? (User) assignedObj
-						: RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(),
-								valResult.getUser().getBearerToken());
+				assignedTo = assignedObj != null ? (User) assignedObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(), valResult.getUser().getBearerToken());
 
 				if (assignedObj == null) {
 					userService.create(assignedTo);
@@ -146,18 +139,13 @@ public class TicketRestService {
 			Milestone milestone = null;
 
 			if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
-				MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(spaceId,
-						ticketAssemblaDto.getMilestoneId(), valResult.getUser().getBearerToken());
+				MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(spaceId, ticketAssemblaDto.getMilestoneId(), valResult.getUser().getBearerToken());
 
 				if (milestoneAssemblaDto == null) {
-					return Response.status(500)
-							.entity("An error occured while trying to retrieve milestone detail for ticket id : "
-									+ ticketAssemblaDto.getId())
-							.build();
+					return Response.status(500).entity("An error occured while trying to retrieve milestone detail for ticket id : " + ticketAssemblaDto.getId()).build();
 				}
 
-				Object milestonObj = milestoneService.findByExternalRefId(Milestone.class,
-						ticketAssemblaDto.getMilestoneId());
+				Object milestonObj = milestoneService.findByExternalRefId(Milestone.class, ticketAssemblaDto.getMilestoneId());
 				milestone = milestonObj != null ? (Milestone) milestonObj : null;
 
 				if (milestone == null) {
@@ -169,28 +157,20 @@ public class TicketRestService {
 				milestone.setDescription(milestoneAssemblaDto.getDescription());
 				milestone.setReleaseNotes(milestoneAssemblaDto.getReleaseNotes());
 				milestone.setPrettyReleaseLevel(milestoneAssemblaDto.getPrettyReleaseLevel());
-				milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null
-						? milestoneAssemblaDto.getCompletedDate().toDate() : null);
-				milestone.setDueDate(
-						milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
+				milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null ? milestoneAssemblaDto.getCompletedDate().toDate() : null);
+				milestone.setDueDate(milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
 				milestone.setCompleted(milestoneAssemblaDto.isCompleted());
 				milestone.setTitle(milestoneAssemblaDto.getTitle());
 
-				Object userCreatedObj = userService.findByExternalRefId(User.class,
-						milestoneAssemblaDto.getCreatedBy());
-				User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj
-						: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(),
-								valResult.getUser().getBearerToken());
+				Object userCreatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getCreatedBy());
+				User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj : RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(), valResult.getUser().getBearerToken());
 
 				if (userCreatedObj == null) {
 					userService.create(mUserCreatedBy);
 				}
 
-				Object userUpdatedObj = userService.findByExternalRefId(User.class,
-						milestoneAssemblaDto.getUpdatedBy());
-				User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj
-						: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(),
-								valResult.getUser().getBearerToken());
+				Object userUpdatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getUpdatedBy());
+				User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj : RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(), valResult.getUser().getBearerToken());
 
 				if (userUpdatedObj == null) {
 					userService.create(mUserUpdatedBy);
@@ -219,18 +199,15 @@ public class TicketRestService {
 				if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
 					currentTicket.setAssignedTo(assignedTo);
 				}
-				currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null
-						? ticketAssemblaDto.getCompletedDate().toDate() : null);
+				currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null);
 				currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
 				currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
 				currentTicket.setExternalRefId(ticketAssemblaDto.getId());
 				currentTicket.setImportance(ticketAssemblaDto.getImportance());
 				currentTicket.setMilestone(milestone);
 				currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
-				currentTicket.setRemotelyCreated(
-						ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
-				currentTicket.setRemotelyUpdated(
-						ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
+				currentTicket.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
+				currentTicket.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
 				currentTicket.setReporter(reporter);
 				currentTicket.setSpace(space);
 				currentTicket.setStatus(ticketAssemblaDto.getStatus());
@@ -260,8 +237,7 @@ public class TicketRestService {
 
 	@GET
 	@Path("/ticketCount")
-	public Response getTicketCount(@HeaderParam("Authorization") String authorization,
-			@QueryParam("space_id") String spaceId) {
+	public Response getTicketCount(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId) {
 
 		int ticketsPerPage = 100;
 
@@ -288,10 +264,8 @@ public class TicketRestService {
 
 			boolean wasNegative = false;
 			do {
-				String ticketsXml = RESTServiceUtil.sendGET(
-						"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page="
-								+ ticketsPerPage + "&page=" + page,
-						true, "Bearer " + valResult.getUser().getBearerToken());
+				String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true,
+						"Bearer " + valResult.getUser().getBearerToken());
 
 				if (!ticketsXml.isEmpty()) {
 					JAXBContext jxb = JAXBContext.newInstance(TicketListAssemblaDto.class);
@@ -304,12 +278,10 @@ public class TicketRestService {
 						}
 					});
 
-					ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller
-							.unmarshal(new StringReader(ticketsXml));
+					ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller.unmarshal(new StringReader(ticketsXml));
 					ticketListSize = ticketListAssemblaDto.getTickets().size();
 
-					System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result
-							+ ", Ticket List Size : " + ticketListSize);
+					System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
 
 				} else {
 					ticketListSize = 0;
@@ -330,8 +302,7 @@ public class TicketRestService {
 					page += pageIncrement;
 				}
 
-				System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result
-						+ ", Ticket List Size : " + ticketListSize);
+				System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
 			} while (result <= 0);
 
 			SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
@@ -347,8 +318,7 @@ public class TicketRestService {
 
 	@GET
 	@Path("/ticketChanges")
-	public Response getTicketChanges(@HeaderParam("Authorization") String authorization,
-			@QueryParam("space_id") String spaceId, @QueryParam("ticket_num") String ticketNumber) {
+	public Response getTicketChanges(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId, @QueryParam("ticket_num") String ticketNumber) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -368,10 +338,8 @@ public class TicketRestService {
 			TicketChangesListDto ticketChangesList = new TicketChangesListDto();
 			TicketChangesListDto ticketChangesDtoResponse = new TicketChangesListDto();
 
-			String ticketChangesXml = RESTServiceUtil.sendGET(
-					"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber
-							+ "/ticket_comments.xml?per_page=100",
-					true, "Bearer " + valResult.getUser().getBearerToken());
+			String ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber + "/ticket_comments.xml?per_page=100", true,
+					"Bearer " + valResult.getUser().getBearerToken());
 
 			if (!ticketChangesXml.isEmpty()) {
 				JAXBContext jxb = JAXBContext.newInstance(TicketChangesListDto.class);
@@ -402,12 +370,10 @@ public class TicketRestService {
 				for (int i = newTicketChangesList.size() - 1; i >= 0; i--) {
 					ticketChangesReversed.add(newTicketChangesList.get(i));
 				}
-				List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null
-						? ticket.getWorkflow().getWorkflowTransitions() : new ArrayList<WorkflowTransition>();
+				List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? ticket.getWorkflow().getWorkflowTransitions() : new ArrayList<WorkflowTransition>();
 				int currentWorkflow = 0;
 				for (TicketChangesDto ticketChanges : ticketChangesReversed) {
-					WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTranstionInstanceService
-							.findByExternalRefId(WorkflowTransitionInstance.class, ticketChanges.getId());
+					WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTranstionInstanceService.findByExternalRefId(WorkflowTransitionInstance.class, ticketChanges.getId());
 
 					if (wti == null) {
 						wti = new WorkflowTransitionInstance();
@@ -417,10 +383,8 @@ public class TicketRestService {
 					wti.setMessage(ticketChanges.getComment());
 					wti.setSpace(space);
 					wti.setTicket(ticket);
-					wti.setRemotelyCreated(
-							ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
-					wti.setRemotelyUpdated(
-							ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
+					wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
+					wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
 
 					wti.setWorkflowTransition(wt);
 
@@ -436,18 +400,15 @@ public class TicketRestService {
 							String previousValue = fieldArray[1].replace("\n", "");
 							String newValue = fieldArray[2].replace("\n", "");
 
-							originState.append(fieldName).append(":").append(previousValue)
-									.append(System.getProperty("line.separator"));
-							targetState.append(fieldName).append(":").append(newValue)
-									.append(System.getProperty("line.separator"));
+							originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
+							targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
 
 							String previousValueBeforeDate = previousValue;
 							String newValueBeforeDate = newValue;
 							if (currentWorkflow < workflowTransitions.size() && workflowTransitions.size() > 0) {
 								if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
 									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-									previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime())
-											+ "";
+									previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime()) + "";
 								}
 
 								if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
@@ -457,12 +418,10 @@ public class TicketRestService {
 
 								fieldMap.put("new_update_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
 
-								System.out
-										.println("Previous Value : " + previousValue + " : " + previousValueBeforeDate);
+								System.out.println("Previous Value : " + previousValue + " : " + previousValueBeforeDate);
 								System.out.println("New Value : " + newValue + " : " + newValueBeforeDate);
 
-								if (fieldMap.get("old_" + fieldName) != null
-										&& fieldMap.get("new_" + fieldName) != null) {
+								if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
 									fieldMap = new HashMap<String, String>();
 									currentWorkflow++;
 									if (currentWorkflow > workflowTransitions.size()) {
@@ -473,8 +432,7 @@ public class TicketRestService {
 								} else {
 									fieldMap.put("old_" + fieldName, previousValue);
 									fieldMap.put("new_" + fieldName, newValue);
-									ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap,
-											workflowTransitions.get(currentWorkflow).getExpressionLanguage());
+									ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(currentWorkflow).getExpressionLanguage());
 
 									if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
 										ticketChanges.setHasViolation(true);
@@ -522,8 +480,7 @@ public class TicketRestService {
 
 	@POST
 	@Path("/triggerTicketSync")
-	public Response triggerTicketSync(@HeaderParam("Authorization") String authorization,
-			@QueryParam("space_id") String spaceId) {
+	public Response triggerTicketSync(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId) {
 
 		TicketJobService ticketJobService = new TicketJobService(authorization, spaceId);
 		ticketJobService.start();

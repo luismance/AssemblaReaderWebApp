@@ -45,8 +45,7 @@ public class User extends BaseModel {
 		super();
 	}
 
-	public User(String username, String password, String externalRefId, String bearerToken, String refreshToken,
-			String name, String email, String phoneNum) {
+	public User(String username, String password, String externalRefId, String bearerToken, String refreshToken, String name, String email, String phoneNum) {
 		super();
 		this.username = username;
 		this.password = password;

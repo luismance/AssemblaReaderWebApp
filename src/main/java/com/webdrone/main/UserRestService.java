@@ -2,6 +2,9 @@ package com.webdrone.main;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -16,6 +19,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
@@ -25,6 +29,7 @@ import org.apache.commons.codec.binary.Base64;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mysql.jdbc.authentication.Sha256PasswordPlugin;
 import com.webdrone.assembla.dto.UserAssemblaDto;
 import com.webdrone.dto.RequestTokenObject;
 import com.webdrone.dto.UserDto;
@@ -90,10 +95,51 @@ public class UserRestService {
 			}
 
 			User user = (User) userService.findUserByUsername(userDto.getUsername());
-
-			userService.update(user);
-
 			if (user != null) {
+				user.setEmail(userDto.getEmail());
+
+				user.setPassword(RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
+				user.setName(userDto.getName());
+				user.setPhoneNum(userDto.getPhoneNum());
+				user.setUsername(userDto.getUsername());
+
+				userService.update(user);
+
+				userDto = new UserDto(user);
+				return Response.status(200).entity(userDto).build();
+			} else {
+				return Response.status(500).entity("Username not found!").build();
+			}
+
+		} catch (JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (EJBException e) {
+			return Response.status(500).entity("Username not found!").build();
+		}
+		return Response.status(500).entity("Username not found!").build();
+	}
+
+	@POST
+	@Path("/updatePassword")
+	public Response updatePassword(String requestBody) {
+
+		try {
+			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
+			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+
+			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+
+			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
+			}
+
+			User user = (User) userService.findUserByUsername(userDto.getUsername());
+			if (user != null) {
+
+				user.setPassword(RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
+				userService.update(user);
+
 				userDto = new UserDto(user);
 				return Response.status(200).entity(userDto).build();
 			} else {
@@ -153,7 +199,7 @@ public class UserRestService {
 			user.setRefreshToken(rto.getRefresh_token());
 			user.setName(userAssemblaDto.getName());
 			user.setEmail(userAssemblaDto.getEmail());
-			user.setUsername(userAssemblaDto.getEmail());
+			user.setUsername(userAssemblaDto.getLogin());
 			user.setPhoneNum(userAssemblaDto.getPhone());
 
 			Random rand = new Random();
