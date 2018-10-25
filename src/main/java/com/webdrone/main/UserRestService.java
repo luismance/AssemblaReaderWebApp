@@ -76,6 +76,40 @@ public class UserRestService {
 	}
 
 	@POST
+	@Path("/update")
+	public Response updateUser(String requestBody) {
+
+		try {
+			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
+			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+
+			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+
+			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
+				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
+			}
+
+			User user = (User) userService.findUserByUsername(userDto.getUsername());
+
+			userService.update(user);
+
+			if (user != null) {
+				userDto = new UserDto(user);
+				return Response.status(200).entity(userDto).build();
+			} else {
+				return Response.status(500).entity("Username not found!").build();
+			}
+
+		} catch (JAXBException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (EJBException e) {
+			return Response.status(500).entity("Username not found!").build();
+		}
+		return Response.status(500).entity("Username not found!").build();
+	}
+
+	@POST
 	@Path("/create")
 	public Response createUser(String requestBody) {
 
@@ -92,7 +126,7 @@ public class UserRestService {
 
 	@POST
 	@Path("/registerToken")
-	public Response registerToken(@QueryParam(value = "userId") long userId, String requestBody) {
+	public Response registerToken(String requestBody) {
 
 		try {
 
@@ -113,7 +147,7 @@ public class UserRestService {
 
 			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userDetails));
 
-			User user = (User) userService.find(User.class, userId);
+			User user = new User();
 			user.setExternalRefId(userAssemblaDto.getId());
 			user.setBearerToken(rto.getAccess_token());
 			user.setRefreshToken(rto.getRefresh_token());
@@ -122,9 +156,15 @@ public class UserRestService {
 			user.setUsername(userAssemblaDto.getEmail());
 			user.setPhoneNum(userAssemblaDto.getPhone());
 
-			UserDto userDto = new UserDto(user);
+			Random rand = new Random();
 
-			userService.update(user);
+			long n = rand.nextInt(50) + 1;
+			n = n + System.currentTimeMillis();
+
+			user.setPassword("temp_password" + n);
+			userService.create(user);
+
+			UserDto userDto = new UserDto(user);
 
 			return Response.status(200).entity(userDto).build();
 		} catch (JsonParseException e) {

@@ -37,13 +37,12 @@ public class UserDto extends BaseDto {
 		this.name = user.getName();
 		this.email = user.getEmail();
 		this.phoneNum = user.getPhoneNum();
-		setId(user.getId());
+		setId(user.getId() != null ? user.getId() : 0);
 		setCreated(user.getDateCreated());
 		setUpdated(user.getDateUpdated());
 	}
 
-	public UserDto(String username, String password, String externalRefId, String bearerToken, String refreshToken,
-			String name, String email, String phoneNum) {
+	public UserDto(String username, String password, String externalRefId, String bearerToken, String refreshToken, String name, String email, String phoneNum) {
 		super();
 		this.username = username;
 		this.password = password;

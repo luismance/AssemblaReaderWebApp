@@ -15,11 +15,8 @@
 	<script>
 		var whole_url = new URL(window.location.href);
 		var code = whole_url.searchParams.get("code");
-		var user = window.localStorage.getItem("userData");
 		var x2js = new X2JS();
-		var userJson = x2js.xml_str2json(user);
-		console.log("User Data : " + JSON.stringify(userJson));
-		var url1 = "rest/user/registerToken?userId="+userJson.user._id;
+		var url1 = "rest/user/registerToken";
 
 		$.ajax({
 			type: "POST",
@@ -29,8 +26,8 @@
 			data: code,
 			success: function (data, status, jqxhr) {
 				var aftCnv = x2js.xml_str2json(data);
-				window.localStorage.setItem("userData", JSON.stringify(aftCnv));
-				window.location.href = "index.html";
+				localStorage.setItem("userData", JSON.stringify(aftCnv));
+				window.location.href = "registration.html";
 			},
 			error: function (data, status, jqxhr) {
 				console.log("First not working! " + status);

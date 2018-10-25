@@ -9,7 +9,7 @@ class TicketItem extends React.Component {
 
   componentDidMount() {
     var thisComp = this;
-    var userData = window.localStorage.getItem("userData");
+    var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
 
@@ -143,7 +143,7 @@ class SpaceList extends React.Component {
 
   componentDidMount() {
     var thisComp = this;
-    var userData = window.localStorage.getItem("userData");
+    var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
 
@@ -174,7 +174,7 @@ class SpaceList extends React.Component {
 
   updateTickets() {
     var thisComp = this;
-    var userData = window.localStorage.getItem("userData");
+    var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var x2js = new X2JS();
     var perPage = Number(getURLParameter("per_page"));
@@ -188,8 +188,8 @@ class SpaceList extends React.Component {
       curPage = 1;
     }
 
-    window.localStorage.setItem("itemPerPage", perPage);
-    window.localStorage.setItem("curPage", curPage);
+    localStorage.setItem("itemPerPage", perPage);
+    localStorage.setItem("curPage", curPage);
 
     if (thisComp.state.currentSpaceId) {
       var urlRequest = "rest/ticket/list?space_id=" + thisComp.state.currentSpaceId + "&per_page=" + perPage + "&page=" + curPage;
@@ -226,7 +226,7 @@ class SpaceList extends React.Component {
           var ticketCount = x2js.xml_str2json(data);
 
           console.log("Update Ticket Count : " + ticketCount.spaceTicketCount.count);
-          window.localStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
+          localStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
           thisComp.setState({ tickets });
         });
       });
@@ -241,7 +241,7 @@ class SpaceList extends React.Component {
   }
 
   logout() {
-    window.localStorage.clear();
+    localStorage.clear();
     window.location.href = "/assemblareader/login.html";
   }
 
@@ -274,9 +274,9 @@ class SpaceList extends React.Component {
       </div>
     );
 
-    var curPage = Number(window.localStorage.getItem("curPage"));
-    var perPage = Number(window.localStorage.getItem("itemPerPage"));
-    var totalTicketCount = Number(window.localStorage.getItem("totalTicketCount"));
+    var curPage = Number(localStorage.getItem("curPage"));
+    var perPage = Number(localStorage.getItem("itemPerPage"));
+    var totalTicketCount = Number(localStorage.getItem("totalTicketCount"));
     var totalTicketCountPerPage = totalTicketCount / perPage;
     var maxPage = totalTicketCountPerPage == 0 ? 1 : totalTicketCountPerPage;
     maxPage = totalTicketCountPerPage * perPage == totalTicketCount || totalTicketCount < perPage ? maxPage : maxPage + 1;

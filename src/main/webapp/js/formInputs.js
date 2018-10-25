@@ -8,7 +8,7 @@ class InputText extends React.Component {
       <div className="row">
         <div className="input-group form-group">
           <span id="sizing-addon2" className="input-group-addon">{this.props.label}</span>
-          <input id={this.props.inputId} type={this.props.inputType} className="form-control" placeholder={this.props.label} aria-label={this.props.label} aria-describedby="sizing-addon2" name={this.props.name} onChange={this.props.textChangeFunction} />
+          <input id={this.props.inputId} type={this.props.inputType} className="form-control" placeholder={this.props.label} aria-label={this.props.label} aria-describedby="sizing-addon2" name={this.props.name} onChange={this.props.textChangeFunction} disabled={this.props.disabled==null ? false : true}/>
         </div>
       </div>
     );
