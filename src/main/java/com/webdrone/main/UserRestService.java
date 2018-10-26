@@ -1,10 +1,6 @@
 package com.webdrone.main;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -16,20 +12,14 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.xml.bind.DatatypeConverter;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
 
 import org.apache.commons.codec.binary.Base64;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mysql.jdbc.authentication.Sha256PasswordPlugin;
 import com.webdrone.assembla.dto.UserAssemblaDto;
 import com.webdrone.dto.RequestTokenObject;
 import com.webdrone.dto.UserDto;
@@ -53,10 +43,8 @@ public class UserRestService {
 	public Response loginUser(String requestBody) {
 
 		try {
-			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
-			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+			UserDto userDto = (UserDto) RESTServiceUtil.unmarshaller(UserDto.class, requestBody);
 
 			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
 				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
@@ -71,13 +59,10 @@ public class UserRestService {
 				return Response.status(500).entity("Username not found!").build();
 			}
 
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (EJBException e) {
 			return Response.status(500).entity("Username not found!").build();
 		}
-		return Response.status(500).entity("Username not found!").build();
+
 	}
 
 	@POST
@@ -85,10 +70,8 @@ public class UserRestService {
 	public Response updateUser(String requestBody) {
 
 		try {
-			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
-			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+			UserDto userDto = (UserDto) RESTServiceUtil.unmarshaller(UserDto.class, requestBody);
 
 			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
 				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
@@ -111,13 +94,10 @@ public class UserRestService {
 				return Response.status(500).entity("Username not found!").build();
 			}
 
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (EJBException e) {
 			return Response.status(500).entity("Username not found!").build();
 		}
-		return Response.status(500).entity("Username not found!").build();
+
 	}
 
 	@POST
@@ -125,10 +105,8 @@ public class UserRestService {
 	public Response updatePassword(String requestBody) {
 
 		try {
-			JAXBContext jxb = JAXBContext.newInstance(UserDto.class);
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
-			UserDto userDto = (UserDto) unmarshaller.unmarshal(new StringReader(requestBody));
+			UserDto userDto = (UserDto) RESTServiceUtil.unmarshaller(UserDto.class, requestBody);
 
 			if (userDto.getUsername().isEmpty() || userDto.getPassword().isEmpty()) {
 				return Response.status(500).type(MediaType.TEXT_PLAIN).entity("Username or Password cannot be empty!").build();
@@ -146,13 +124,10 @@ public class UserRestService {
 				return Response.status(500).entity("Username not found!").build();
 			}
 
-		} catch (JAXBException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (EJBException e) {
 			return Response.status(500).entity("Username not found!").build();
 		}
-		return Response.status(500).entity("Username not found!").build();
+
 	}
 
 	@POST
@@ -166,7 +141,7 @@ public class UserRestService {
 		User user = new User("temp_username_" + n, "temp_password" + n, "", "access_token", "", "", "", "");
 
 		User result = (User) userService.create(user);
-		UserDto userDto = new UserDto(user);
+		UserDto userDto = new UserDto(result);
 		return Response.status(201).entity(userDto).build();
 	}
 
@@ -188,10 +163,7 @@ public class UserRestService {
 
 			String userDetails = RESTServiceUtil.sendGET(userDetailsEndpoint, true, "Bearer " + rto.getAccess_token());
 
-			JAXBContext jxb = JAXBContext.newInstance(UserAssemblaDto.class);
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
-
-			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userDetails));
+			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) RESTServiceUtil.unmarshaller(UserAssemblaDto.class, userDetails);
 
 			User user = new User();
 			user.setExternalRefId(userAssemblaDto.getId());
@@ -220,9 +192,6 @@ public class UserRestService {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (JAXBException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

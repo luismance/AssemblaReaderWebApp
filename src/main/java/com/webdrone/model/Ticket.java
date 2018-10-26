@@ -26,11 +26,11 @@ public class Ticket extends RemoteEntity {
 	@Column(name = "TICKET_NUMBER")
 	private Integer ticketNumber;
 
-	@Column(name = "SUMMARY", length = 255)
+	@Column(name = "SUMMARY", columnDefinition = "TEXT")
 	private String summary;
 
 	@Lob
-	@Column(name = "DESCRIPTION", length = 2000)
+	@Column(name = "DESCRIPTION", columnDefinition = "TEXT")
 	private String description;
 
 	@Column(name = "STATUS", length = 255)

@@ -27,7 +27,6 @@ class TicketItem extends React.Component {
     }).done(function(data) {
       var ticketChangesJson = x2js.xml_str2json(data);
       const ticketChanges = ticketChangesJson["ticket-comments"]["ticket-comment"];
-
       if (ticketChanges || ticketChanges != null) {
         thisComp.setState({ ticketChanges });
       }
@@ -56,7 +55,7 @@ class TicketItem extends React.Component {
 
           return (
             <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")} style={{ marginLeft: "25px"  }}>
-              {finalTicketChanges}
+              {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>
             </a>
           );
         }
@@ -82,7 +81,7 @@ class TicketItem extends React.Component {
 
         return (
           <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")}>
-            {finalTicketChanges}
+            {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>
           </a>
         );
 

@@ -26,10 +26,10 @@ public class WorkflowTransitionInstance extends RemoteEntity {
 	@Column(name = "HAS_VIOLATION")
 	private boolean hasViolation;
 
-	@Column(name = "ORIGIN_STATE", length = 10000)
+	@Column(name = "ORIGIN_STATE", columnDefinition = "TEXT")
 	private String originState;
 
-	@Column(name = "TARGET_STATE", length = 10000)
+	@Column(name = "TARGET_STATE", columnDefinition = "TEXT")
 	private String targetState;
 
 	@ManyToOne(optional = false)

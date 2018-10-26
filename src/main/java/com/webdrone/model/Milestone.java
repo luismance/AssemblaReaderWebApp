@@ -19,13 +19,13 @@ public class Milestone extends RemoteEntity {
 	@Column(name = "PLANNER_TYPE")
 	private Integer plannerType;
 
-	@Column(name = "DESCRIPTION", length = 255)
+	@Column(name = "DESCRIPTION", columnDefinition = "TEXT")
 	private String description;
 
-	@Column(name = "RELEASE_NOTES", length = 10000)
+	@Column(name = "RELEASE_NOTES", columnDefinition = "TEXT")
 	private String releaseNotes;
 
-	@Column(name = "PRETTY_RELEASE_LEVEL", length = 10000)
+	@Column(name = "PRETTY_RELEASE_LEVEL", columnDefinition = "TEXT")
 	private String prettyReleaseLevel;
 
 	@ManyToOne(optional = false)

@@ -13,7 +13,7 @@ public class Role extends BaseModel {
 	@Column(name = "NAME", length = 255, nullable = false)
 	private String name;
 
-	@Column(name = "DESCRIPTION", length = 255, nullable = true)
+	@Column(name = "DESCRIPTION", columnDefinition = "TEXT", nullable = true)
 	private String description;
 
 	public Role() {

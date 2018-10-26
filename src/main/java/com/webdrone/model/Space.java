@@ -17,10 +17,10 @@ public class Space extends RemoteEntity {
 
 	private static final long serialVersionUID = 1L;
 
-	@Column(name = "DESCRIPTION", length = 255, nullable = true)
+	@Column(name = "DESCRIPTION", columnDefinition = "TEXT", nullable = true)
 	private String description;
 
-	@Column(name = "WIKINAME", length = 255, nullable = true)
+	@Column(name = "WIKINAME", columnDefinition = "TEXT", nullable = true)
 	private String wikiname;
 
 	@Column(name = "PUBLIC_PERMISSIONS")
@@ -35,10 +35,10 @@ public class Space extends RemoteEntity {
 	@Column(name = "TEAM_TAB_ROLE")
 	private int teamTabRole;
 
-	@Column(name = "DEFAULT_SHOW_PAGE", length = 255, nullable = true)
+	@Column(name = "DEFAULT_SHOW_PAGE", columnDefinition = "TEXT", nullable = true)
 	private String defaultShowPage;
 
-	@Column(name = "TABS_ORDER", length = 5000, nullable = false)
+	@Column(name = "TABS_ORDER", columnDefinition = "TEXT", nullable = false)
 	private String tabsOrder;
 
 	@ManyToOne
@@ -55,19 +55,19 @@ public class Space extends RemoteEntity {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date commercialFrom = new Date();
 
-	@Column(name = "BANNER_PATH", length = 5000)
+	@Column(name = "BANNER_PATH", columnDefinition = "TEXT")
 	private String bannerPath;
 
 	@Column(name = "BANNER_HEIGHT")
 	private long bannerHeight;
 
-	@Column(name = "BANNER_TEXT", length = 255)
+	@Column(name = "BANNER_TEXT", columnDefinition = "TEXT")
 	private String bannerText;
 
-	@Column(name = "BANNER_LINK", length = 5000)
+	@Column(name = "BANNER_LINK", columnDefinition = "TEXT")
 	private String bannerLink;
 
-	@Column(name = "STYLE", length = 5000)
+	@Column(name = "STYLE", columnDefinition = "TEXT")
 	private String style;
 
 	@Column(name = "STATUS")

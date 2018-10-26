@@ -2,6 +2,7 @@ package com.webdrone.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -35,80 +36,65 @@ public class RESTServiceUtil {
 	public static TicketListAssemblaDto convertTicketListXml(String spaceId, int ticketsPerPage, int page, String bearerToken) {
 		String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + spaceId + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + bearerToken);
 
-		System.out.println("Tickets XML : " + ticketsXml);
-		JAXBContext jxb;
-		try {
-			jxb = JAXBContext.newInstance(TicketListAssemblaDto.class);
+		TicketListAssemblaDto ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller(TicketListAssemblaDto.class, ticketsXml);
 
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
+		return ticketListAssemblaDto;
 
-			unmarshaller.setEventHandler(new ValidationEventHandler() {
-				public boolean handleEvent(ValidationEvent event) {
-					throw new RuntimeException(event.getMessage(), event.getLinkedException());
-				}
-			});
-
-			TicketListAssemblaDto ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller.unmarshal(new StringReader(ticketsXml));
-
-			return ticketListAssemblaDto;
-		} catch (JAXBException e) {
-			e.printStackTrace();
-			return null;
-		}
 	}
 
 	public static MilestoneAssemblaDto convertMilestonXml(String spaceId, String milestoneExternalRefId, String bearerToken) {
 		String milestoneXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + spaceId + "/milestones/" + milestoneExternalRefId + ".xml", true, "Bearer " + bearerToken);
 
-		JAXBContext jxb;
-		try {
-			jxb = JAXBContext.newInstance(MilestoneAssemblaDto.class);
+		MilestoneAssemblaDto milestoneAssemblaDto = (MilestoneAssemblaDto) unmarshaller(MilestoneAssemblaDto.class, milestoneXml);
 
-			Unmarshaller unmarshaller = jxb.createUnmarshaller();
-
-			unmarshaller.setEventHandler(new ValidationEventHandler() {
-				public boolean handleEvent(ValidationEvent event) {
-					throw new RuntimeException(event.getMessage(), event.getLinkedException());
-				}
-			});
-
-			MilestoneAssemblaDto milestoneAssemblaDto = (MilestoneAssemblaDto) unmarshaller.unmarshal(new StringReader(milestoneXml));
-
-			return milestoneAssemblaDto;
-		} catch (JAXBException e) {
-			e.printStackTrace();
-			return null;
-		}
+		return milestoneAssemblaDto;
 	}
 
 	public static User convertUserXml(String userExternalRefId, String bearerToken) {
 		String userXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/users/" + userExternalRefId + ".xml", true, "Bearer " + bearerToken);
 
+		UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller(UserAssemblaDto.class, userXml);
+
+		User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(), "bearer_token", "refresh_token", userAssemblaDto.getName(), userAssemblaDto.getEmail(), "");
+		return user;
+
+	}
+
+	public static String sendGET(String uri, boolean requiresAuthorization, String authorization) {
+		return sendReq(uri, RESTServiceMethod.GET, requiresAuthorization, authorization);
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static Object unmarshaller(Class clazz, String xml) {
+		return unmarshaller(clazz, xml, false);
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static Object unmarshaller(Class clazz, String xml, final boolean throwExceptionUnrecognizedElement) {
 		JAXBContext jxb;
 		try {
-			jxb = JAXBContext.newInstance(UserAssemblaDto.class);
+			jxb = JAXBContext.newInstance(clazz);
 
 			Unmarshaller unmarshaller = jxb.createUnmarshaller();
 
 			unmarshaller.setEventHandler(new ValidationEventHandler() {
 				public boolean handleEvent(ValidationEvent event) {
-					throw new RuntimeException(event.getMessage(), event.getLinkedException());
+					if (throwExceptionUnrecognizedElement) {
+						throw new RuntimeException(event.getMessage(), event.getLinkedException());
+					} else {
+						if (event.getMessage().contains("unexpected element"))
+							return true;
+						return false;
+					}
 				}
 			});
 
-			UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller.unmarshal(new StringReader(userXml));
+			return unmarshaller.unmarshal(new StringReader(xml));
 
-			User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(), "bearer_token", "refresh_token", userAssemblaDto.getName(),
-					userAssemblaDto.getEmail(), "");
-			return user;
 		} catch (JAXBException e) {
 			e.printStackTrace();
 			return null;
 		}
-	}
-
-	public static String sendGET(String uri, boolean requiresAuthorization, String authorization) {
-		return sendReq(uri, RESTServiceMethod.GET, requiresAuthorization, authorization);
 	}
 
 	public static String sendPOST(String uri, boolean requiresAuthorization, String authorization) {
@@ -129,10 +115,12 @@ public class RESTServiceUtil {
 			}
 
 			responseCode = connection.getResponseCode() + "";
-			System.out.println("Response Code : " + connection.getResponseCode() + ", URI : " + uri + ", Method : " + method.name());
-			InputStream xml = connection.getInputStream();
 
-			java.util.Scanner s = new java.util.Scanner(xml).useDelimiter("\\A");
+			System.out.println("Response Code : " + connection.getResponseCode() + ", URI : " + uri + ", Method : " + method.name());
+			InputStreamReader r = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8);
+
+			// InputStream xml = connection.getInputStream();
+			java.util.Scanner s = new java.util.Scanner(r).useDelimiter("\\A");
 
 			String response = s.hasNext() ? s.next() : "";
 

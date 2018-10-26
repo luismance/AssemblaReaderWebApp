@@ -31,6 +31,10 @@ public class TicketChangesDto {
 
 	private boolean hasViolation;
 
+	private String violationCode;
+
+	private String violationMessage;
+
 	@XmlElement(name = "id")
 	public String getId() {
 		return id;
@@ -121,6 +125,24 @@ public class TicketChangesDto {
 
 	public void setHasViolation(boolean hasViolation) {
 		this.hasViolation = hasViolation;
+	}
+
+	@XmlElement(name = "violation-code")
+	public String getViolationCode() {
+		return violationCode;
+	}
+
+	public void setViolationCode(String violationCode) {
+		this.violationCode = violationCode;
+	}
+
+	@XmlElement(name = "violation-message")
+	public String getViolationMessage() {
+		return violationMessage;
+	}
+
+	public void setViolationMessage(String violationMessage) {
+		this.violationMessage = violationMessage;
 	}
 
 }

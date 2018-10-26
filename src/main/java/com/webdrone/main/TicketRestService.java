@@ -1,6 +1,5 @@
 package com.webdrone.main;
 
-import java.io.StringReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -19,11 +18,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.ValidationEvent;
-import javax.xml.bind.ValidationEventHandler;
 
 import com.webdrone.assembla.dto.MilestoneAssemblaDto;
 import com.webdrone.assembla.dto.SpaceTicketCountDto;
@@ -254,66 +248,50 @@ public class TicketRestService {
 			return Response.status(500).entity("Invalid space id!").build();
 		}
 
-		try {
+		TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
+		int page = 1;
+		int result = 0;
+		int ticketListSize = 0;
+		int pageIncrement = 5;
 
-			TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
-			int page = 1;
-			int result = 0;
-			int ticketListSize = 0;
-			int pageIncrement = 5;
+		boolean wasNegative = false;
+		do {
+			String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + valResult.getUser().getBearerToken());
 
-			boolean wasNegative = false;
-			do {
-				String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true,
-						"Bearer " + valResult.getUser().getBearerToken());
+			if (!ticketsXml.isEmpty()) {
 
-				if (!ticketsXml.isEmpty()) {
-					JAXBContext jxb = JAXBContext.newInstance(TicketListAssemblaDto.class);
-
-					Unmarshaller unmarshaller = jxb.createUnmarshaller();
-
-					unmarshaller.setEventHandler(new ValidationEventHandler() {
-						public boolean handleEvent(ValidationEvent event) {
-							throw new RuntimeException(event.getMessage(), event.getLinkedException());
-						}
-					});
-
-					ticketListAssemblaDto = (TicketListAssemblaDto) unmarshaller.unmarshal(new StringReader(ticketsXml));
-					ticketListSize = ticketListAssemblaDto.getTickets().size();
-
-					System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
-
-				} else {
-					ticketListSize = 0;
-				}
-
-				if (ticketListSize == 0) {
-					page -= 1;
-					wasNegative = true;
-				} else {
-					if (page == 1 && ticketListSize < ticketsPerPage) {
-						result = ticketListSize;
-						break;
-					} else if (ticketListSize <= ticketsPerPage && ticketListSize > 0 && wasNegative) {
-						result = ((page - 1) * ticketsPerPage) + ticketListSize;
-						break;
-					}
-
-					page += pageIncrement;
-				}
+				ticketListAssemblaDto = (TicketListAssemblaDto) RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
+				ticketListSize = ticketListAssemblaDto.getTickets().size();
 
 				System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
-			} while (result <= 0);
 
-			SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
-			ticketCountDto.setTicketCount(result);
-			System.out.println("Ticket Count : " + result);
-			return Response.status(200).entity(ticketCountDto).build();
+			} else {
+				ticketListSize = 0;
+			}
 
-		} catch (JAXBException e) {
-			e.printStackTrace();
-		}
-		return Response.status(500).entity("An error occured while trying to retrieve data").build();
+			if (ticketListSize == 0) {
+				page -= 1;
+				wasNegative = true;
+			} else {
+				if (page == 1 && ticketListSize < ticketsPerPage) {
+					result = ticketListSize;
+					break;
+				} else if (ticketListSize <= ticketsPerPage && ticketListSize > 0 && wasNegative) {
+					result = ((page - 1) * ticketsPerPage) + ticketListSize;
+					break;
+				}
+
+				page += pageIncrement;
+			}
+
+			System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
+		} while (result <= 0);
+
+		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
+		ticketCountDto.setTicketCount(result);
+		System.out.println("Ticket Count : " + result);
+		return Response.status(200).entity(ticketCountDto).build();
+
 	}
 
 	@GET
@@ -342,17 +320,8 @@ public class TicketRestService {
 					"Bearer " + valResult.getUser().getBearerToken());
 
 			if (!ticketChangesXml.isEmpty()) {
-				JAXBContext jxb = JAXBContext.newInstance(TicketChangesListDto.class);
 
-				Unmarshaller unmarshaller = jxb.createUnmarshaller();
-
-				unmarshaller.setEventHandler(new ValidationEventHandler() {
-					public boolean handleEvent(ValidationEvent event) {
-						throw new RuntimeException(event.getMessage(), event.getLinkedException());
-					}
-				});
-
-				ticketChangesList = (TicketChangesListDto) unmarshaller.unmarshal(new StringReader(ticketChangesXml));
+				ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
 
 				Ticket ticket = ticketService.getTicketBySpaceAndNumber(space.getId(), ticketNumber);
 
@@ -403,8 +372,6 @@ public class TicketRestService {
 							originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
 							targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
 
-							String previousValueBeforeDate = previousValue;
-							String newValueBeforeDate = newValue;
 							if (currentWorkflow < workflowTransitions.size() && workflowTransitions.size() > 0) {
 								if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
 									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -418,14 +385,13 @@ public class TicketRestService {
 
 								fieldMap.put("new_update_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
 
-								System.out.println("Previous Value : " + previousValue + " : " + previousValueBeforeDate);
-								System.out.println("New Value : " + newValue + " : " + newValueBeforeDate);
-
 								if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
 									fieldMap = new HashMap<String, String>();
 									currentWorkflow++;
 									if (currentWorkflow > workflowTransitions.size()) {
 										ticketChanges.setHasViolation(true);
+										ticketChanges.setViolationCode(workflowTransitions.get(currentWorkflow).getErrorCode());
+										ticketChanges.setViolationMessage(workflowTransitions.get(currentWorkflow).getErrorMessage());
 									}
 									fieldMap.put("old_" + fieldName, previousValue);
 									fieldMap.put("new_" + fieldName, newValue);
@@ -433,9 +399,11 @@ public class TicketRestService {
 									fieldMap.put("old_" + fieldName, previousValue);
 									fieldMap.put("new_" + fieldName, newValue);
 									ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(currentWorkflow).getExpressionLanguage());
-
+									System.out.println("EVAL RESULT : " + evalResult);
 									if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
 										ticketChanges.setHasViolation(true);
+										ticketChanges.setViolationCode(workflowTransitions.get(currentWorkflow).getErrorCode());
+										ticketChanges.setViolationMessage(workflowTransitions.get(currentWorkflow).getErrorMessage());
 										fieldMap = new HashMap<String, String>();
 										currentWorkflow++;
 									} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
@@ -470,8 +438,6 @@ public class TicketRestService {
 
 			return Response.status(200).entity(ticketChangesDtoResponse).build();
 
-		} catch (JAXBException e) {
-			e.printStackTrace();
 		} catch (ParseException e) {
 			e.printStackTrace();
 		}

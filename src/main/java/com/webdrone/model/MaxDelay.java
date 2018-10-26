@@ -10,7 +10,7 @@ public class MaxDelay extends BaseModel {
 
 	private static final long serialVersionUID = 1L;
 
-	@Column(name = "EXPRESSION_LANGUAGE", length = 10000, nullable = false)
+	@Column(name = "EXPRESSION_LANGUAGE", columnDefinition = "TEXT", nullable = false)
 	private String expressionLanguage;
 
 	@Column(name = "MAX_DELAY")

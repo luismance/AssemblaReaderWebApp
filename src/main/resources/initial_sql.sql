@@ -4,8 +4,6 @@ INSERT INTO workflow(CREATED, UPDATED, NAME) VALUES(CURRENT_TIMESTAMP(), CURRENT
 INSERT INTO workflow(CREATED, UPDATED, NAME) VALUES(CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 'Need');
 INSERT INTO workflow(CREATED, UPDATED, NAME) VALUES(CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 'Regression Bug');
 
-INSERT INTO `user` (`ID`, `CREATED`, `UPDATED`, `BEARER_TOKEN`, `EMAIL`, `EXTERNAL_REF_ID`, `NAME`, `PASSWORD`, `PHONE_NUM`, `REFRESH_TOKEN`, `USERNAME`) VALUES (1, '2017-11-29 16:46:51', '2017-11-29 16:46:51', 'e97f807952aa741dc08eb641920060c8', 'luis.mance@web-drone.fr', 'dJstESRMyr55hcacwqjQXA', 'luis.mance@web-drone.fr', '0D1EA4C256CD50A2A7CCBFD22B3D9959F6FD30BD840B9FF3C7C65EE4E21DF06D', '', '7b028a2c53b6e4e361c14a28078a92c0', 'qweqweqwe');
-
 /* BUG WORKFLOW
 	STEP 1 : NEW UNNASSIGNED
 		|-STEP 2 : NEW ASSIGNED
@@ -89,7 +87,7 @@ VALUES(CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 'BUG_ERR5', 'Error 5',
 INSERT INTO workflow_transition(CREATED, UPDATED, ERROR_CODE, ERROR_MESSAGE, EXPRESSION_LANGUAGE, WORKFLOW_ID) 
 VALUES(CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 'BUG_ERR1', 'Error 1', 
 '(old_status == "New" && old_assigned_to_id == "") && 
-(new_status == "Accepted" && new_assigned_to_id != "") && webdrone_assemblawebdrone_assemblawebdrone_assemblawebdrone_assembla
+(new_status == "Accepted" && new_assigned_to_id != "") && 
 ((new_updated_at - ticket_created) < 60) && ticket_priority == 1', 3);
  
 INSERT INTO workflow_transition(CREATED, UPDATED, ERROR_CODE, ERROR_MESSAGE, EXPRESSION_LANGUAGE, WORKFLOW_ID) 

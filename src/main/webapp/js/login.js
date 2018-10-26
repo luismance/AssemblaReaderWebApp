@@ -5,7 +5,10 @@ class LoginForm extends React.Component {
   }
 
   componentDidMount(){
-    console.log("User Data : " + JSON.stringify(localStorage.getItem("userData")));
+
+    if(localStorage.getItem("userData")){
+      window.location.href = "index.html";
+    }
   }
 
   loginUser(){
