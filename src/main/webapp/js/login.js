@@ -9,6 +9,20 @@ class LoginForm extends React.Component {
     if(localStorage.getItem("userData")){
       window.location.href = "index.html";
     }
+    document.getElementById("username").addEventListener("keyup", function(event) {
+    event.preventDefault();
+    if (event.keyCode === 13) {
+      $("#btnLogin").click();
+    }
+    });
+
+    document.getElementById("password").addEventListener("keyup", function(event) {
+    event.preventDefault();
+    if (event.keyCode === 13) {
+      $("#btnLogin").click();
+    }
+    });
+
   }
 
   loginUser(){
@@ -60,7 +74,7 @@ class LoginForm extends React.Component {
               <InputText inputId="username" label="Username" inputType="text" />
               <InputText inputId="password" label="Password" inputType="password" />
               <div className="col-sm-6">
-                <FormButton label="Login" buttonType="button" functionCall={this.loginUser} />
+                <FormButton inputId="btnLogin" label="Login" buttonType="button" functionCall={this.loginUser} />
               </div>
               <div className="col-sm-6">
                 Not Registered?

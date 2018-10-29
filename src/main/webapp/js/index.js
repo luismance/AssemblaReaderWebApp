@@ -245,7 +245,6 @@ class SpaceList extends React.Component {
 
   render() {
     var spaceList = this.state.spaces.map((space, i) => (
-      //<li className="nav-item " key={space.id} onClick={this.updateSpace.bind(this, space.id)}>
       <li className="nav-item " key={space.id}>
         <a href={"/assemblareader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? "active" : "")}>
           {space.name}

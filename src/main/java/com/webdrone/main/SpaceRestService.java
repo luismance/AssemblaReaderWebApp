@@ -1,5 +1,8 @@
 package com.webdrone.main;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -51,7 +54,18 @@ public class SpaceRestService {
 
 		SpaceListAssemblaDto spaceListAssemblaDto = (SpaceListAssemblaDto) RESTServiceUtil.unmarshaller(SpaceListAssemblaDto.class, spacesXml);
 
+		SpaceListAssemblaDto spaceListResult = new SpaceListAssemblaDto();
+		List<SpaceAssemblaDto> spaceAssemblaList = new ArrayList<SpaceAssemblaDto>();
 		for (SpaceAssemblaDto spaceAssemblaDto : spaceListAssemblaDto.getSpaceDtos()) {
+
+			String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + spaceAssemblaDto.getId() + "/tickets.xml", true, "Bearer " + valResult.getUser().getBearerToken());
+
+			if (ticketsXml.isEmpty()) {
+				spaceAssemblaDto.setHasAccess(false);
+			} else {
+				spaceAssemblaDto.setHasAccess(true);
+			}
+
 			Object resultSpace = spaceService.findByExternalRefId(Space.class, spaceAssemblaDto.getId());
 			Space currentSpace = resultSpace != null ? ((Space) resultSpace) : null;
 			Object resultParentSpace = spaceService.findByExternalRefId(Space.class, spaceAssemblaDto.getParentId());
@@ -95,8 +109,11 @@ public class SpaceRestService {
 				currentSpace.setWikiname(spaceAssemblaDto.getWikiName());
 				spaceService.update(currentSpace);
 			}
-		}
+			spaceAssemblaList.add(spaceAssemblaDto);
 
-		return Response.status(200).entity(spaceListAssemblaDto).build();
+		}
+		spaceListResult.setSpaceDtos(spaceAssemblaList);
+
+		return Response.status(200).entity(spaceListResult).build();
 	}
 }

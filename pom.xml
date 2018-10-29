@@ -119,6 +119,12 @@
 			<artifactId>commons-jexl3</artifactId>
 			<version>3.0</version>
 		</dependency>
+		<dependency>
+			<groupId>javax.enterprise.concurrent</groupId>
+			<artifactId>javax.enterprise.concurrent-api</artifactId>
+			<version>1.0-b02</version>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

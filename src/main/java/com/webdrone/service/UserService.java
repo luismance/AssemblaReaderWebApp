@@ -14,17 +14,16 @@ import com.webdrone.util.UserAuthResult;
 public class UserService extends BaseService<User> {
 
 	public UserService() {
+		super();
 	}
 
 	public UserService(EntityManager em) {
+		super();
 		this.setEntityManager(em);
 	}
 
-	public User findUserByUsername(String username) {
-		List<User> listResult = getEntityManager()
-				.createQuery("SELECT u FROM " + User.class.getSimpleName() + " u WHERE u.username = '" + username + "'",
-						User.class)
-				.getResultList();
+	public User findUserByUsername(EntityManager em, String username) {
+		List<User> listResult = em.createQuery("SELECT u FROM " + User.class.getSimpleName() + " u WHERE u.username = '" + username + "'", User.class).getResultList();
 
 		if (listResult != null && listResult.size() > 0) {
 			return listResult.get(0);
@@ -32,9 +31,12 @@ public class UserService extends BaseService<User> {
 		return null;
 	}
 
+	public User findUserByUsername(String username) {
+		return findUserByUsername(getEntityManager(), username);
+	}
+
 	public User findUserByUsernameAndPassword(String username, String password) {
-		User result = (User) getEntityManager().createQuery("SELECT u FROM " + User.class.getSimpleName()
-				+ " u WHERE u.username = '" + username + "' AND u.password = '" + password + "'", User.class)
+		User result = (User) getEntityManager().createQuery("SELECT u FROM " + User.class.getSimpleName() + " u WHERE u.username = '" + username + "' AND u.password = '" + password + "'", User.class)
 				.getSingleResult();
 		return result;
 	}
@@ -47,7 +49,7 @@ public class UserService extends BaseService<User> {
 		String username = values[0];
 		String password = values[1];
 		User user = findUserByUsername(username);
-		
+
 		if (user == null) {
 			UserAuthResult res = new UserAuthResult(500, "Username not found", null);
 			return res;

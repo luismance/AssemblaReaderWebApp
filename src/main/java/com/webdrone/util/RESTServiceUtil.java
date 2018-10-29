@@ -119,7 +119,6 @@ public class RESTServiceUtil {
 			System.out.println("Response Code : " + connection.getResponseCode() + ", URI : " + uri + ", Method : " + method.name());
 			InputStreamReader r = new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8);
 
-			// InputStream xml = connection.getInputStream();
 			java.util.Scanner s = new java.util.Scanner(r).useDelimiter("\\A");
 
 			String response = s.hasNext() ? s.next() : "";

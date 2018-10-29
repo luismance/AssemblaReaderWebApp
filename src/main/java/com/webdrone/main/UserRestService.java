@@ -56,11 +56,11 @@ public class UserRestService {
 				userDto = new UserDto(result);
 				return Response.status(200).entity(userDto).build();
 			} else {
-				return Response.status(500).entity("Username not found!").build();
+				return Response.status(500).entity("Incorrect Username or Password").build();
 			}
 
 		} catch (EJBException e) {
-			return Response.status(500).entity("Username not found!").build();
+			return Response.status(500).entity("Errror looking for account!").build();
 		}
 
 	}

@@ -74,6 +74,8 @@ public class SpaceAssemblaDto {
 
 	private DateTime lastPayerChangedAt;
 
+	private boolean hasAccess;
+
 	@XmlElement
 	public String getId() {
 		return id;
@@ -347,6 +349,15 @@ public class SpaceAssemblaDto {
 
 	public void setLastPayerChangedAt(DateTime lastPayerChangedAt) {
 		this.lastPayerChangedAt = lastPayerChangedAt;
+	}
+
+	@XmlElement(name = "has-access")
+	public boolean isHasAccess() {
+		return hasAccess;
+	}
+
+	public void setHasAccess(boolean hasAccess) {
+		this.hasAccess = hasAccess;
 	}
 
 }

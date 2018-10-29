@@ -22,7 +22,7 @@ class FormButton extends React.Component {
 
   render(){
     return (
-      <button className="btn btn-lg btn-primary btn-block" type={this.props.buttonType} onClick={this.props.functionCall}>{this.props.label}</button>
+      <button id={this.props.inputId} className="btn btn-lg btn-primary btn-block" type={this.props.buttonType} onClick={this.props.functionCall}>{this.props.label}</button>
     );
   }
 }
