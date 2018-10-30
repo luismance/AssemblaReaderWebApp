@@ -1,5 +1,8 @@
 package com.webdrone.thread;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 
@@ -25,14 +28,6 @@ public class SyncUserDataThread implements Runnable {
 
 	private UserService userService;
 
-	private SpaceService spaceService;
-
-	private MilestoneService milestoneService;
-
-	private WorkflowService workflowService;
-
-	private TicketService ticketService;
-
 	private String username;
 
 	private EntityManager entityManager;
@@ -51,19 +46,25 @@ public class SyncUserDataThread implements Runnable {
 		try {
 			System.out.println("Starting Space Sync");
 
-			UserService userService = new UserService();
+			userService = new UserService();
+			SpaceService spaceService = new SpaceService();
+			TicketService ticketService = new TicketService();
+			MilestoneService milestoneService = new MilestoneService();
+			WorkflowService workflowService = new WorkflowService();
 
 			User currentUser = userService.findUserByUsername(entityManager, username);
 
+			List<Space> spaceList = new ArrayList<Space>();
 			if (currentUser != null) {
 				String spacesXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces.xml", true, "Bearer " + currentUser.getBearerToken());
 
 				SpaceListAssemblaDto spaceListAssemblaDto = (SpaceListAssemblaDto) RESTServiceUtil.unmarshaller(SpaceListAssemblaDto.class, spacesXml);
 
 				for (SpaceAssemblaDto spaceAssemblaDto : spaceListAssemblaDto.getSpaceDtos()) {
-					Object resultSpace = spaceService.findByExternalRefId(Space.class, spaceAssemblaDto.getId());
+
+					Object resultSpace = spaceService.findByExternalRefId(entityManager, Space.class, spaceAssemblaDto.getId());
 					Space currentSpace = resultSpace != null ? ((Space) resultSpace) : null;
-					Object resultParentSpace = spaceService.findByExternalRefId(Space.class, spaceAssemblaDto.getParentId());
+					Object resultParentSpace = spaceService.findByExternalRefId(entityManager, Space.class, spaceAssemblaDto.getParentId());
 					Space parentSpace = resultParentSpace != null ? ((Space) resultParentSpace) : null;
 					if (currentSpace == null) {
 						Space newSpace = new Space(spaceAssemblaDto);
@@ -71,7 +72,7 @@ public class SyncUserDataThread implements Runnable {
 							newSpace.setParentSpace(parentSpace);
 						}
 
-						spaceService.create(new Space(spaceAssemblaDto));
+						spaceList.add((Space) spaceService.threadCreate(entityManager, new Space(spaceAssemblaDto)));
 						System.out.println("Space Created : " + spaceAssemblaDto.getId());
 					} else {
 						currentSpace.setApproved(spaceAssemblaDto.isApproved());
@@ -104,188 +105,168 @@ public class SyncUserDataThread implements Runnable {
 						currentSpace.setVolunteer(spaceAssemblaDto.isVolunteer());
 						currentSpace.setWatcherPermissions(spaceAssemblaDto.getWatcherPermissions());
 						currentSpace.setWikiname(spaceAssemblaDto.getWikiName());
-						spaceService.update(currentSpace);
+						spaceList.add((Space) spaceService.threadUpdate(entityManager, currentSpace));
 						System.out.println("Space Updated : " + spaceAssemblaDto.getId());
 					}
+
 				}
 
 				int ticketsPerPage = 100;
 
-				for (SpaceAssemblaDto spaceAssemblaDto : spaceListAssemblaDto.getSpaceDtos()) {
-					Object obj = spaceService.findByExternalRefId(Space.class, spaceAssemblaDto.getId());
-					Space space = obj != null ? (Space) obj : null;
+				for (Space space : spaceList) {
+					System.out.println("Current Space : " + space.getExternalRefId());
+					if (space != null) {
+						TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
+						int page = 1;
+						int ticketListSize = 0;
+						do {
+							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + currentUser.getBearerToken());
 
-					TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
-					int page = 1;
-					int result = 0;
-					int ticketListSize = 0;
-					int pageIncrement = 5;
+							if (ticketsXml.length() < 30) {
+								System.out.println("Tickets XML : " + ticketsXml);
+							}
 
-					boolean wasNegative = false;
-					do {
-						String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page,
-								true, "Bearer " + currentUser.getBearerToken());
+							if (!ticketsXml.isEmpty() && !ticketsXml.equals("204")) {
+								ticketListAssemblaDto = (TicketListAssemblaDto) RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
+								ticketListSize = ticketListAssemblaDto.getTickets().size();
+								for (TicketAssemblaDto ticketAssemblaDto : ticketListAssemblaDto.getTickets()) {
+									Object ticketObj = ticketService.findByExternalRefId(entityManager, Ticket.class, ticketAssemblaDto.getId());
+									Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
 
-						if (!ticketsXml.isEmpty()) {
-							ticketListAssemblaDto = (TicketListAssemblaDto) RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
-							ticketListSize = ticketListAssemblaDto.getTickets().size();
-							for (TicketAssemblaDto ticketAssemblaDto : ticketListAssemblaDto.getTickets()) {
-								Object ticketObj = ticketService.findByExternalRefId(Ticket.class, ticketAssemblaDto.getId());
-								Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
+									Object reporterObj = userService.findByExternalRefId(entityManager, User.class, ticketAssemblaDto.getReporterId());
+									User reporter = reporterObj != null ? (User) reporterObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(), currentUser.getBearerToken());
 
-								Object reporterObj = userService.findByExternalRefId(User.class, ticketAssemblaDto.getReporterId());
-								User reporter = reporterObj != null ? (User) reporterObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(), currentUser.getBearerToken());
-
-								if (reporterObj == null) {
-									userService.create(reporter);
-									System.out.println("Reporter Created : " + reporter.getUsername());
-								} else {
-									userService.update(reporter);
-									System.out.println("Reporter Updated : " + reporter.getUsername());
-								}
-
-								Object assignedObj = userService.findByExternalRefId(User.class, ticketAssemblaDto.getAssignedToId());
-								User assignedTo = null;
-
-								if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-									assignedTo = assignedObj != null ? (User) assignedObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(), currentUser.getBearerToken());
-
-									if (assignedObj == null) {
-										userService.create(assignedTo);
-										System.out.println("AssignedTo Created : " + assignedTo.getUsername());
+									if (reporterObj == null) {
+										userService.threadCreate(entityManager, reporter);
+										System.out.println("Reporter Created : " + reporter.getUsername());
 									} else {
-										userService.update(assignedTo);
-										System.out.println("AssignedTo Updated : " + assignedTo.getUsername());
-									}
-								}
-								/*
-								 * START : MILESTONE SYNC
-								 */
-
-								Milestone milestone = null;
-
-								if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
-									MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(spaceAssemblaDto.getId(), ticketAssemblaDto.getMilestoneId(),
-											currentUser.getBearerToken());
-
-									Object milestonObj = milestoneService.findByExternalRefId(Milestone.class, ticketAssemblaDto.getMilestoneId());
-									milestone = milestonObj != null ? (Milestone) milestonObj : null;
-
-									if (milestone == null) {
-										milestone = new Milestone();
+										userService.threadUpdate(entityManager, reporter);
+										System.out.println("Reporter Updated : " + reporter.getUsername());
 									}
 
-									milestone.setExternalRefId(milestoneAssemblaDto.getId());
-									milestone.setPlannerType(milestoneAssemblaDto.getPlannerType());
-									milestone.setDescription(milestoneAssemblaDto.getDescription());
-									milestone.setReleaseNotes(milestoneAssemblaDto.getReleaseNotes());
-									milestone.setPrettyReleaseLevel(milestoneAssemblaDto.getPrettyReleaseLevel());
-									milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null ? milestoneAssemblaDto.getCompletedDate().toDate() : null);
-									milestone.setDueDate(milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
-									milestone.setCompleted(milestoneAssemblaDto.isCompleted());
-									milestone.setTitle(milestoneAssemblaDto.getTitle());
+									Object assignedObj = userService.findByExternalRefId(entityManager, User.class, ticketAssemblaDto.getAssignedToId());
+									User assignedTo = null;
 
-									Object userCreatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getCreatedBy());
-									User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj
-											: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(), currentUser.getBearerToken());
-
-									if (userCreatedObj == null) {
-										userService.create(mUserCreatedBy);
-										System.out.println("Milestone Created By User Created : " + mUserCreatedBy.getUsername());
-									}
-
-									Object userUpdatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getUpdatedBy());
-									User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj
-											: RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(), currentUser.getBearerToken());
-
-									if (userUpdatedObj == null) {
-										userService.create(mUserUpdatedBy);
-										System.out.println("Milestone Updated By User Created : " + mUserUpdatedBy.getUsername());
-									}
-
-									milestone.setCreatedBy(mUserCreatedBy);
-									milestone.setUpdatedBy(mUserUpdatedBy);
-
-									milestone.setSpace(space);
-									if (milestonObj == null) {
-										milestoneService.create(milestone);
-										System.out.println("Milestone Created : " + milestone.getExternalRefId());
-									} else {
-										milestoneService.update(milestone);
-										System.out.println("Milestone Updated : " + milestone.getExternalRefId());
-									}
-								}
-								/*
-								 * END : MILESTONE SYNC
-								 */
-
-								Workflow workflow = workflowService.getWorkflowByName(ticketAssemblaDto.getCustomFields().getType());
-
-								/*
-								 * START : TICKET SYNC
-								 */
-								if (currentTicket != null) {
 									if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-										currentTicket.setAssignedTo(assignedTo);
+										assignedTo = assignedObj != null ? (User) assignedObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(), currentUser.getBearerToken());
+
+										if (assignedObj == null) {
+											userService.threadCreate(entityManager, assignedTo);
+											System.out.println("AssignedTo Created : " + assignedTo.getUsername());
+										} else {
+											userService.threadUpdate(entityManager, assignedTo);
+											System.out.println("AssignedTo Updated : " + assignedTo.getUsername());
+										}
 									}
-									currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null);
-									currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
-									currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
-									currentTicket.setExternalRefId(ticketAssemblaDto.getId());
-									currentTicket.setImportance(ticketAssemblaDto.getImportance());
-									currentTicket.setMilestone(milestone);
-									currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
-									currentTicket.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
-									currentTicket.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
-									currentTicket.setReporter(reporter);
-									currentTicket.setSpace(space);
-									currentTicket.setStatus(ticketAssemblaDto.getStatus());
-									currentTicket.setStory(ticketAssemblaDto.isStory());
-									currentTicket.setStoryImportance(ticketAssemblaDto.getStoryImportance());
-									currentTicket.setSummary(ticketAssemblaDto.getSummary());
-									currentTicket.setTicketNumber(ticketAssemblaDto.getNumber());
-									currentTicket.setTotalEstimate(ticketAssemblaDto.getTotalEstimate());
-									currentTicket.setTotalInvestedHours(ticketAssemblaDto.getTotalInvestedHours());
-									currentTicket.setTotalWorkingHours(ticketAssemblaDto.getTotalWorkingHours());
-									currentTicket.setWorkflow(workflow);
-									currentTicket.setWorkingHours(ticketAssemblaDto.getWorkingHours());
+									/*
+									 * START : MILESTONE SYNC
+									 */
 
-									ticketService.update(currentTicket);
+									Milestone milestone = null;
 
-									System.out.println("Ticket Updated : " + currentTicket.getExternalRefId());
-								} else {
-									currentTicket = new Ticket(ticketAssemblaDto, space, milestone, reporter, assignedTo, workflow);
-									ticketService.create(currentTicket);
-									System.out.println("Ticket Created : " + currentTicket.getExternalRefId());
+									if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
+										MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(space.getExternalRefId(), ticketAssemblaDto.getMilestoneId(), currentUser.getBearerToken());
+
+										Object milestonObj = milestoneService.findByExternalRefId(entityManager, Milestone.class, ticketAssemblaDto.getMilestoneId());
+										milestone = milestonObj != null ? (Milestone) milestonObj : null;
+
+										if (milestone == null) {
+											milestone = new Milestone();
+										}
+
+										milestone.setExternalRefId(milestoneAssemblaDto.getId());
+										milestone.setPlannerType(milestoneAssemblaDto.getPlannerType());
+										milestone.setDescription(milestoneAssemblaDto.getDescription());
+										milestone.setReleaseNotes(milestoneAssemblaDto.getReleaseNotes());
+										milestone.setPrettyReleaseLevel(milestoneAssemblaDto.getPrettyReleaseLevel());
+										milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null ? milestoneAssemblaDto.getCompletedDate().toDate() : null);
+										milestone.setDueDate(milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
+										milestone.setCompleted(milestoneAssemblaDto.isCompleted());
+										milestone.setTitle(milestoneAssemblaDto.getTitle());
+
+										Object userCreatedObj = userService.findByExternalRefId(entityManager, User.class, milestoneAssemblaDto.getCreatedBy());
+										User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj : RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(), currentUser.getBearerToken());
+
+										if (userCreatedObj == null) {
+											userService.threadCreate(entityManager, mUserCreatedBy);
+											System.out.println("Milestone Created By User Created : " + mUserCreatedBy.getUsername());
+										}
+
+										Object userUpdatedObj = userService.findByExternalRefId(entityManager, User.class, milestoneAssemblaDto.getUpdatedBy());
+										User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj : RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(), currentUser.getBearerToken());
+
+										if (userUpdatedObj == null) {
+											userService.threadCreate(entityManager, mUserUpdatedBy);
+											System.out.println("Milestone Updated By User Created : " + mUserUpdatedBy.getUsername());
+										}
+
+										milestone.setCreatedBy(mUserCreatedBy);
+										milestone.setUpdatedBy(mUserUpdatedBy);
+
+										milestone.setSpace(space);
+										if (milestonObj == null) {
+											milestoneService.threadCreate(entityManager, milestone);
+											System.out.println("Milestone Created : " + milestone.getExternalRefId());
+										} else {
+											milestoneService.threadUpdate(entityManager, milestone);
+											System.out.println("Milestone Updated : " + milestone.getExternalRefId());
+										}
+									}
+									/*
+									 * END : MILESTONE SYNC
+									 */
+
+									Workflow workflow = workflowService.getWorkflowByName(entityManager, ticketAssemblaDto.getCustomFields().getType());
+
+									/*
+									 * START : TICKET SYNC
+									 */
+									if (currentTicket != null) {
+										if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
+											currentTicket.setAssignedTo(assignedTo);
+										}
+										currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null);
+										currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
+										currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
+										currentTicket.setExternalRefId(ticketAssemblaDto.getId());
+										currentTicket.setImportance(ticketAssemblaDto.getImportance());
+										currentTicket.setMilestone(milestone);
+										currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
+										currentTicket.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
+										currentTicket.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
+										currentTicket.setReporter(reporter);
+										currentTicket.setSpace(space);
+										currentTicket.setStatus(ticketAssemblaDto.getStatus());
+										currentTicket.setStory(ticketAssemblaDto.isStory());
+										currentTicket.setStoryImportance(ticketAssemblaDto.getStoryImportance());
+										currentTicket.setSummary(ticketAssemblaDto.getSummary());
+										currentTicket.setTicketNumber(ticketAssemblaDto.getNumber());
+										currentTicket.setTotalEstimate(ticketAssemblaDto.getTotalEstimate());
+										currentTicket.setTotalInvestedHours(ticketAssemblaDto.getTotalInvestedHours());
+										currentTicket.setTotalWorkingHours(ticketAssemblaDto.getTotalWorkingHours());
+										currentTicket.setWorkflow(workflow);
+										currentTicket.setWorkingHours(ticketAssemblaDto.getWorkingHours());
+
+										ticketService.threadUpdate(entityManager, currentTicket);
+
+										System.out.println("Ticket Updated : " + currentTicket.getExternalRefId());
+									} else {
+										currentTicket = new Ticket(ticketAssemblaDto, space, milestone, reporter, assignedTo, workflow);
+										ticketService.threadCreate(entityManager, currentTicket);
+										System.out.println("Ticket Created : " + currentTicket.getExternalRefId());
+									}
+
+									/*
+									 * END : TICKET SYNC
+									 */
 								}
-
-								/*
-								 * END : TICKET SYNC
-								 */
+								System.out.println("Page : " + page + ", Ticket List Size : " + ticketListSize);
+								page++;
+							} else {
+								return;
 							}
-							System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
-
-						} else {
-							ticketListSize = 0;
-						}
-
-						if (ticketListSize == 0) {
-							page -= 1;
-							wasNegative = true;
-						} else {
-							if (page == 1 && ticketListSize < ticketsPerPage) {
-								result = ticketListSize;
-								break;
-							} else if (ticketListSize <= ticketsPerPage && ticketListSize > 0 && wasNegative) {
-								result = ((page - 1) * ticketsPerPage) + ticketListSize;
-								break;
-							}
-
-							page += pageIncrement;
-						}
-
-						System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
-					} while (result <= 0);
+						} while (ticketListSize > 0);
+					}
 				}
 			} else {
 				System.out.println("User is null");
@@ -304,7 +285,7 @@ public class SyncUserDataThread implements Runnable {
 			RESTServiceUtil.refreshBearerToken(currentUser);
 
 			sendReq = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces.xml", true, "Bearer " + currentUser.getBearerToken());
-			userService.update(entityManager, currentUser);
+			userService.threadUpdate(entityManager, currentUser);
 		}
 
 		return sendReq;

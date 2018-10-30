@@ -27,11 +27,16 @@ public class BaseService<T extends BaseModel> {
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public Object findByExternalRefId(Class clazz, String externalRefId) {
+	public Object findByExternalRefId(EntityManager em, Class clazz, String externalRefId) {
 
-		List<Object> resultList = getEntityManager().createQuery("SELECT u FROM " + clazz.getSimpleName() + " u WHERE u.externalRefId = '" + externalRefId + "'", clazz).getResultList();
+		List<Object> resultList = em.createQuery("SELECT u FROM " + clazz.getSimpleName() + " u WHERE u.externalRefId = '" + externalRefId + "'", clazz).getResultList();
 		Object result = resultList != null && resultList.size() > 0 ? resultList.get(0) : null;
 		return result;
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	public Object findByExternalRefId(Class clazz, String externalRefId) {
+		return findByExternalRefId(getEntityManager(), clazz, externalRefId);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -59,13 +64,28 @@ public class BaseService<T extends BaseModel> {
 		return object;
 	}
 
+	public Object threadCreate(EntityManager em, Object object) {
+		em.persist(object);
+		return object;
+	}
+
+	public Object threadUpdate(EntityManager em, Object object) {
+		em.merge(object);
+		return object;
+	}
+
 	public Object update(Object object) {
 		return update(getEntityManager(), object);
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public Object find(Class clazz, long id) {
-		Object result = getEntityManager().find(clazz, id);
+	public Object find(EntityManager em, Class clazz, long id) {
+		Object result = em.find(clazz, id);
 		return result;
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	public Object find(Class clazz, long id) {
+		return find(getEntityManager(), clazz, id);
 	}
 }
