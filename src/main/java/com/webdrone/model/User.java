@@ -1,10 +1,17 @@
 package com.webdrone.model;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
@@ -40,6 +47,10 @@ public class User extends BaseModel {
 
 	@OneToMany
 	private List<Role> userRoles = new ArrayList<Role>();
+
+	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.EAGER)
+	@JoinTable(name = "user_space", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "space_id"))
+	private Set<Space> spaces = new HashSet<Space>();
 
 	public User() {
 		super();
@@ -127,6 +138,14 @@ public class User extends BaseModel {
 
 	public void setUserRoles(List<Role> userRoles) {
 		this.userRoles = userRoles;
+	}
+
+	public Set<Space> getSpaces() {
+		return spaces;
+	}
+
+	public void setSpaces(Set<Space> spaces) {
+		this.spaces = spaces;
 	}
 
 }

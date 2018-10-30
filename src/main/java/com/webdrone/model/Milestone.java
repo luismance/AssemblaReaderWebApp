@@ -10,6 +10,8 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import com.webdrone.assembla.dto.MilestoneAssemblaDto;
+
 @Entity
 @Table(name = "MILESTONE")
 public class Milestone extends RemoteEntity {
@@ -54,10 +56,25 @@ public class Milestone extends RemoteEntity {
 	@JoinColumn(name = "SPACE_ID", nullable = false)
 	private Space space;
 
-	public Milestone(){
+	public Milestone() {
 		super();
 	}
-	
+
+	public Milestone(MilestoneAssemblaDto mad) {
+		super();
+		this.plannerType = mad.getPlannerType();
+		this.description = mad.getDescription();
+		this.releaseNotes = mad.getReleaseNotes();
+		this.prettyReleaseLevel = mad.getReleaseLevel();
+		this.completedDate = mad.getCompletedDate().toDate();
+		this.dueDate = mad.getDueDate().toDate();
+		this.isCompleted = mad.isCompleted();
+		this.title = mad.getTitle();
+		this.setExternalRefId(mad.getId());
+		this.setRemotelyCreated(mad.getCreatedAt().toDate());
+		this.setRemotelyUpdated(mad.getUpdatedAt().toDate());
+	}
+
 	public Integer getPlannerType() {
 		return plannerType;
 	}

@@ -5,6 +5,12 @@ import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
+import javax.transaction.HeuristicMixedException;
+import javax.transaction.HeuristicRollbackException;
+import javax.transaction.NotSupportedException;
+import javax.transaction.RollbackException;
+import javax.transaction.SystemException;
+import javax.transaction.UserTransaction;
 
 import com.webdrone.model.BaseModel;
 
@@ -58,10 +64,33 @@ public class BaseService<T extends BaseModel> {
 	}
 
 	public Object update(EntityManager em, Object object) {
+
 		em.merge(object);
 		em.flush();
 		em.clear();
 		return object;
+	}
+
+	public Object threadCreate(UserTransaction utx, EntityManager em, Object object)
+			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
+		Object result = null;
+		utx.begin();
+		em.joinTransaction();
+		result = threadCreate(em, object);
+		em.clear();
+		utx.commit();
+		return result;
+	}
+
+	public Object threadUpdate(UserTransaction utx, EntityManager em, Object object)
+			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
+		Object result = null;
+		utx.begin();
+		em.joinTransaction();
+		result = threadUpdate(em, object);
+		em.clear();
+		utx.commit();
+		return result;
 	}
 
 	public Object threadCreate(EntityManager em, Object object) {

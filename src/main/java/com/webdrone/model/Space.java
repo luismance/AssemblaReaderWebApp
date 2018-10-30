@@ -1,13 +1,23 @@
 package com.webdrone.model;
 
+import java.math.BigDecimal;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+
+import org.joda.time.DateTime;
 
 import com.webdrone.assembla.dto.SpaceAssemblaDto;
 
@@ -95,14 +105,16 @@ public class Space extends RemoteEntity {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date lastPayerChangedAt = new Date();
 
+	@ManyToMany(mappedBy = "spaces")
+	private Set<User> users = new HashSet<User>();
+
 	public Space() {
 		super();
 	}
 
 	public Space(SpaceAssemblaDto spaceAssemblaDto) {
 		super();
-		this.bannerHeight = spaceAssemblaDto.getBannerHeight() != null ? spaceAssemblaDto.getBannerHeight().longValue()
-				: 0;
+		this.bannerHeight = spaceAssemblaDto.getBannerHeight() != null ? spaceAssemblaDto.getBannerHeight().longValue() : 0;
 		this.bannerLink = spaceAssemblaDto.getBannerLink();
 		this.bannerPath = spaceAssemblaDto.getBanner();
 		this.bannerText = spaceAssemblaDto.getBannerText();
@@ -116,12 +128,10 @@ public class Space extends RemoteEntity {
 		this.isManager = spaceAssemblaDto.isManager();
 		this.isRestricted = spaceAssemblaDto.isRestricted();
 		this.isVolunteer = spaceAssemblaDto.isVolunteer();
-		this.lastPayerChangedAt = spaceAssemblaDto.getLastPayerChangedAt() != null
-				? spaceAssemblaDto.getLastPayerChangedAt().toDate() : null;
+		this.lastPayerChangedAt = spaceAssemblaDto.getLastPayerChangedAt() != null ? spaceAssemblaDto.getLastPayerChangedAt().toDate() : null;
 		// this.parentSpace = spaceAssemblaDto.getParentId();
 		this.publicPermissions = spaceAssemblaDto.getPublicPermissions();
-		this.restrictedDate = spaceAssemblaDto.getRestrictedDate() != null
-				? spaceAssemblaDto.getRestrictedDate().toDate() : null;
+		this.restrictedDate = spaceAssemblaDto.getRestrictedDate() != null ? spaceAssemblaDto.getRestrictedDate().toDate() : null;
 		this.status = spaceAssemblaDto.getStatus();
 		this.style = spaceAssemblaDto.getStyle();
 		this.tabsOrder = spaceAssemblaDto.getTabsOrder();
@@ -130,9 +140,43 @@ public class Space extends RemoteEntity {
 		this.watcherPermissions = spaceAssemblaDto.getWatcherPermissions();
 		this.wikiname = spaceAssemblaDto.getWikiName();
 		this.setExternalRefId(spaceAssemblaDto.getId());
-		this.setRemotelyCreated(spaceAssemblaDto.getCreatedAt()!= null ? spaceAssemblaDto.getCreatedAt().toDate() : new Date());
-		this.setRemotelyUpdated(spaceAssemblaDto.getUpdatedAt()!= null ? spaceAssemblaDto.getUpdatedAt().toDate() : new Date());
-		
+		this.setRemotelyCreated(spaceAssemblaDto.getCreatedAt() != null ? spaceAssemblaDto.getCreatedAt().toDate() : new Date());
+		this.setRemotelyUpdated(spaceAssemblaDto.getUpdatedAt() != null ? spaceAssemblaDto.getUpdatedAt().toDate() : new Date());
+
+	}
+
+	public SpaceAssemblaDto toDto() {
+		SpaceAssemblaDto sad = new SpaceAssemblaDto();
+		sad.setApproved(this.isApproved);
+		sad.setBanner(this.bannerPath);
+		sad.setBannerHeight(new BigDecimal(bannerHeight));
+		sad.setBannerLink(this.bannerLink);
+		sad.setBannerText(this.bannerText);
+		sad.setCanApply(this.canApply);
+		sad.setCanJoin(this.canJoin);
+		sad.setCommercial(this.isCommercial);
+		sad.setCommercialFrom(new DateTime(this.commercialFrom));
+		sad.setCreatedAt(new DateTime(this.getRemotelyCreated()));
+		sad.setDefaultShowpage(this.defaultShowPage);
+		sad.setDescription(this.description);
+		sad.setId(this.getExternalRefId());
+		sad.setLastPayerChangedAt(new DateTime(this.lastPayerChangedAt));
+		sad.setManager(this.isManager);
+		sad.setName(this.wikiname);
+		sad.setPublicPermissions(this.publicPermissions);
+		sad.setRestricted(this.isRestricted);
+		sad.setRestrictedDate(new DateTime(this.restrictedDate));
+		sad.setStatus(this.status);
+		sad.setStyle(this.style);
+		sad.setTabsOrder(this.tabsOrder);
+		sad.setTeamPermissions(this.teamPermissions);
+		sad.setTeamTabRole(this.teamTabRole);
+		sad.setUpdatedAt(new DateTime(this.getRemotelyUpdated()));
+		sad.setVolunteer(this.isVolunteer);
+		sad.setWatcherPermissions(this.watcherPermissions);
+		sad.setWikiName(this.wikiname);
+
+		return sad;
 	}
 
 	public String getDescription() {
@@ -333,6 +377,14 @@ public class Space extends RemoteEntity {
 
 	public void setLastPayerChangedAt(Date lastPayerChangedAt) {
 		this.lastPayerChangedAt = lastPayerChangedAt;
+	}
+
+	public Set<User> getUsers() {
+		return users;
+	}
+
+	public void setUsers(Set<User> users) {
+		this.users = users;
 	}
 
 }

@@ -5,6 +5,7 @@ import javax.enterprise.concurrent.ManagedThreadFactory;
 import javax.inject.Inject;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.PersistenceUnit;
+import javax.transaction.UserTransaction;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -32,6 +33,9 @@ public class SyncRestService {
 	@PersistenceUnit(unitName = "webdroneAssembla")
 	private EntityManagerFactory emf;
 
+	@Resource
+	private UserTransaction utx;
+
 	@POST
 	@Path("/syncdata")
 	public Response syncData(@HeaderParam("Authorization") String authorization, String requestBody) {
@@ -41,7 +45,7 @@ public class SyncRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		SyncUserDataThread sudt = new SyncUserDataThread(emf.createEntityManager(), valResult.getUser().getUsername());
+		SyncUserDataThread sudt = new SyncUserDataThread(utx, emf.createEntityManager(), valResult.getUser().getUsername());
 		Thread thread = threadFactory.newThread(sudt);
 		thread.start();
 

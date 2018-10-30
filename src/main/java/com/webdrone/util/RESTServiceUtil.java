@@ -54,7 +54,8 @@ public class RESTServiceUtil {
 
 		UserAssemblaDto userAssemblaDto = (UserAssemblaDto) unmarshaller(UserAssemblaDto.class, userXml);
 
-		User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(), "bearer_token", "refresh_token", userAssemblaDto.getName(), userAssemblaDto.getEmail(), "");
+		User user = new User(userAssemblaDto.getLogin(), userAssemblaDto.getLogin(), userAssemblaDto.getId(), "bearer_token", "refresh_token", userAssemblaDto.getName(), userAssemblaDto.getEmail(),
+				"");
 		return user;
 
 	}
@@ -91,7 +92,7 @@ public class RESTServiceUtil {
 			return unmarshaller.unmarshal(new StringReader(xml));
 
 		} catch (JAXBException e) {
-			e.printStackTrace();
+			System.out.println("Parsing Exception");
 			return null;
 		}
 	}

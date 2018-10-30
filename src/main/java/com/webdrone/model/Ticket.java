@@ -87,8 +87,7 @@ public class Ticket extends RemoteEntity {
 		super();
 	}
 
-	public Ticket(TicketAssemblaDto ticketAssemblaDto, Space space, Milestone milestone, User reporter, User assignedTo,
-			Workflow workflow) {
+	public Ticket(TicketAssemblaDto ticketAssemblaDto, Space space, Milestone milestone, User reporter, User assignedTo, Workflow workflow) {
 		super();
 		this.ticketNumber = ticketAssemblaDto.getNumber();
 		this.summary = ticketAssemblaDto.getSummary();
@@ -102,21 +101,15 @@ public class Ticket extends RemoteEntity {
 		this.totalEstimate = ticketAssemblaDto.getTotalEstimate();
 		this.workingHours = ticketAssemblaDto.getWorkingHours();
 		this.importance = ticketAssemblaDto.getImportance();
-		this.completedDate = ticketAssemblaDto.getCompletedDate() != null
-				? ticketAssemblaDto.getCompletedDate().toDate() : null;
+		this.completedDate = ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null;
 		this.space = space;
 		this.milestone = milestone;
 		this.reporter = reporter;
 		this.assignedTo = assignedTo;
 		this.workflow = workflow;
 		this.setExternalRefId(ticketAssemblaDto.getId());
-		this.setRemotelyCreated(
-				ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : new Date());
-		this.setRemotelyUpdated(
-				ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : new Date());
-
-		System.out.println("Remotely Created : " + ticketAssemblaDto.getCreatedOn());
-		System.out.println("Remotely Updated : " + ticketAssemblaDto.getUpdatedAt());
+		this.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : new Date());
+		this.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : new Date());
 	}
 
 	public Space getSpace() {
