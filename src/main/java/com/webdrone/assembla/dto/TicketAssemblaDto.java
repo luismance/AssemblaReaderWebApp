@@ -71,6 +71,8 @@ public class TicketAssemblaDto {
 
 	private String pictureUrl;
 
+	private String ticketType;
+
 	@XmlElement(name = "id")
 	public String getId() {
 		return id;
@@ -343,6 +345,15 @@ public class TicketAssemblaDto {
 
 	public void setPictureUrl(String pictureUrl) {
 		this.pictureUrl = pictureUrl;
+	}
+
+	@XmlElement(name = "ticket-type")
+	public String getTicketType() {
+		return ticketType;
+	}
+
+	public void setTicketType(String ticketType) {
+		this.ticketType = ticketType;
 	}
 
 }

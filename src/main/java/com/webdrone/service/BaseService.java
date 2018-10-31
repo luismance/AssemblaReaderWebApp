@@ -73,33 +73,24 @@ public class BaseService<T extends BaseModel> {
 
 	public Object threadCreate(UserTransaction utx, EntityManager em, Object object)
 			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
-		Object result = null;
 		utx.begin();
 		em.joinTransaction();
-		result = threadCreate(em, object);
+		em.persist(object);
+		em.flush();
 		em.clear();
 		utx.commit();
-		return result;
+		return object;
 	}
 
 	public Object threadUpdate(UserTransaction utx, EntityManager em, Object object)
 			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
-		Object result = null;
+
 		utx.begin();
 		em.joinTransaction();
-		result = threadUpdate(em, object);
+		em.merge(object);
+		em.flush();
 		em.clear();
 		utx.commit();
-		return result;
-	}
-
-	public Object threadCreate(EntityManager em, Object object) {
-		em.persist(object);
-		return object;
-	}
-
-	public Object threadUpdate(EntityManager em, Object object) {
-		em.merge(object);
 		return object;
 	}
 

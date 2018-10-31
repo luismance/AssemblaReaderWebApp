@@ -97,6 +97,7 @@ class TicketItem extends React.Component {
           {this.props.summary}
           {this.props.ticketType || this.props.ticketType != null ? "[" + this.props.ticketType + "]" : ""}
           <span class="badge">{this.props.number}</span>
+          <span class="badge">{ticketChanges ? "DROP : ""}</span>
         </a>
         <div class="panel-collapse collapse" id={"collapse" + this.props.number}>
           <div class="panel-body">{ticketChangesFull}</div>
@@ -118,7 +119,7 @@ class TicketList extends React.Component {
 
   render() {
     const listItems = this.props.tickets.map((ticket, i) => (
-      <TicketItem id={ticket.id} summary={ticket.summary} number={ticket.number} spaceId={ticket["space-id"]} ticketType={ticket["custom-fields"].type} />
+      <TicketItem id={ticket.id} summary={ticket.summary} number={ticket.number} spaceId={ticket["space-id"]} ticketType={ticket["ticket-type"]} />
     ));
     return (
       <div id="ticketDiv" style={{ marginTop: "10px" }}>

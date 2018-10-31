@@ -7,6 +7,11 @@ import java.util.Set;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
+import javax.transaction.HeuristicMixedException;
+import javax.transaction.HeuristicRollbackException;
+import javax.transaction.NotSupportedException;
+import javax.transaction.RollbackException;
+import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
 
 import com.webdrone.assembla.dto.MilestoneAssemblaDto;
@@ -61,7 +66,6 @@ public class SyncUserDataThread implements Runnable {
 
 			User currentUser = userService.findUserByUsername(entityManager, username);
 
-			Set<Space> spaceList = currentUser.getSpaces();
 			if (currentUser != null) {
 
 				System.out.println("Starting SPACE Sync");
@@ -80,7 +84,11 @@ public class SyncUserDataThread implements Runnable {
 						if (parentSpace != null) {
 							newSpace.setParentSpace(parentSpace);
 						}
-						spaceList.add((Space) spaceService.threadCreate(utx, entityManager, newSpace));
+						newSpace.addUser(currentUser);
+						currentUser.addSpace(newSpace);
+
+						spaceService.threadCreate(utx, entityManager, newSpace);
+
 						System.out.println("Space Created : " + spaceAssemblaDto.getId());
 					} else {
 						currentSpace.setApproved(spaceAssemblaDto.isApproved());
@@ -113,19 +121,21 @@ public class SyncUserDataThread implements Runnable {
 						currentSpace.setVolunteer(spaceAssemblaDto.isVolunteer());
 						currentSpace.setWatcherPermissions(spaceAssemblaDto.getWatcherPermissions());
 						currentSpace.setWikiname(spaceAssemblaDto.getWikiName());
-						spaceList.add((Space) spaceService.threadUpdate(utx, entityManager, currentSpace));
+
+						currentSpace.addUser(currentUser);
+						currentUser.addSpace(currentSpace);
+						spaceService.threadUpdate(utx, entityManager, currentSpace);
 						System.out.println("Space Updated : " + spaceAssemblaDto.getId());
 					}
 
 				}
 
-				currentUser.setSpaces(spaceList);
 				userService.threadUpdate(utx, entityManager, currentUser);
 
 				System.out.println("DONE SPACE Sync");
 
 				System.out.println("START MILESTONE Sync");
-				for (Space space : spaceList) {
+				for (Space space : currentUser.getSpaces()) {
 					System.out.println("Starting MILESTONE Sync for SPACE " + space.getExternalRefId());
 					int milestonesPerPage = 100;
 					int milestonePage = 1;
@@ -201,7 +211,7 @@ public class SyncUserDataThread implements Runnable {
 				System.out.println("START TICKET Sync");
 				int ticketsPerPage = 100;
 
-				for (Space space : spaceList) {
+				for (Space space : currentUser.getSpaces()) {
 					System.out.println("Current Space : " + space.getExternalRefId());
 					if (space != null) {
 						TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
@@ -309,7 +319,8 @@ public class SyncUserDataThread implements Runnable {
 
 	}
 
-	private String sendRequest(User currentUser, String url, boolean requireAuthorization, String authorization) {
+	private String sendRequest(User currentUser, String url, boolean requireAuthorization, String authorization)
+			throws SecurityException, IllegalStateException, NotSupportedException, SystemException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
 		String sendReq = RESTServiceUtil.sendGET(url, requireAuthorization, authorization);
 
 		if (sendReq.equals("401")) {
@@ -317,7 +328,7 @@ public class SyncUserDataThread implements Runnable {
 			RESTServiceUtil.refreshBearerToken(currentUser);
 
 			sendReq = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces.xml", true, "Bearer " + currentUser.getBearerToken());
-			userService.threadUpdate(entityManager, currentUser);
+			userService.threadUpdate(utx, entityManager, currentUser);
 		}
 
 		return sendReq;

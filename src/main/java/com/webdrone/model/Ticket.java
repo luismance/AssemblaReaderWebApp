@@ -11,6 +11,8 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import org.joda.time.DateTime;
+
 import com.webdrone.assembla.dto.TicketAssemblaDto;
 
 @Entity
@@ -110,6 +112,34 @@ public class Ticket extends RemoteEntity {
 		this.setExternalRefId(ticketAssemblaDto.getId());
 		this.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : new Date());
 		this.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : new Date());
+	}
+
+	public TicketAssemblaDto toDto() {
+		TicketAssemblaDto dto = new TicketAssemblaDto();
+		dto.setAssignedToId(assignedTo != null ? this.assignedTo.getId().toString() : null);
+		dto.setAsssignedToName(assignedTo != null ? this.getAssignedTo().getName() : null);
+		dto.setCompletedDate(this.getCompletedDate() != null ? new DateTime(this.getCompletedDate()) : null);
+		dto.setCreatedOn(this.getRemotelyCreated() != null ? new DateTime(this.getRemotelyCreated()) : null);
+		dto.setDescription(this.getDescription());
+		dto.setEstimate(this.getEstimate());
+		dto.setId(this.getExternalRefId());
+		dto.setImportance(this.getImportance());
+		dto.setMilestoneId(this.getMilestone() != null ? this.getMilestone().getId().toString() : null);
+		dto.setNumber(this.ticketNumber);
+		dto.setPriority(this.priorityTypeId);
+		dto.setReporterId(this.reporter != null ? this.reporter.getId().toString() : null);
+		dto.setSpaceId(this.space != null ? this.space.getExternalRefId() : null);
+		dto.setStatus(this.status);
+		dto.setStory(this.isStory);
+		dto.setStoryImportance(this.storyImportance);
+		dto.setSummary(this.summary);
+		dto.setTotalEstimate(this.totalEstimate);
+		dto.setTotalInvestedHours(this.totalInvestedHours);
+		dto.setTotalWorkingHours(this.totalWorkingHours);
+		dto.setUpdatedAt(new DateTime(this.getRemotelyUpdated()));
+		dto.setWorkingHours(this.workingHours);
+
+		return dto;
 	}
 
 	public Space getSpace() {

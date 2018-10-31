@@ -19,18 +19,14 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.webdrone.assembla.dto.MilestoneAssemblaDto;
 import com.webdrone.assembla.dto.SpaceTicketCountDto;
 import com.webdrone.assembla.dto.TicketAssemblaDto;
 import com.webdrone.assembla.dto.TicketChangesDto;
 import com.webdrone.assembla.dto.TicketChangesListDto;
 import com.webdrone.assembla.dto.TicketListAssemblaDto;
 import com.webdrone.job.TicketJobService;
-import com.webdrone.model.Milestone;
 import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
-import com.webdrone.model.User;
-import com.webdrone.model.Workflow;
 import com.webdrone.model.WorkflowTransition;
 import com.webdrone.model.WorkflowTransitionInstance;
 import com.webdrone.service.MilestoneService;
@@ -95,136 +91,14 @@ public class TicketRestService {
 			return Response.status(500).entity("Invalid space id!").build();
 		}
 
-		TicketListAssemblaDto ticketListAssemblaDto = RESTServiceUtil.convertTicketListXml(space.getExternalRefId(), ticketsPerPage, page, valResult.getUser().getBearerToken());
-
-		if (ticketListAssemblaDto == null) {
-			return Response.status(500).entity("An error occured while trying to retrieve ticket list").build();
+		List<Ticket> ticketList = ticketService.getTicketsBySpace(spaceId, ticketsPerPage, page - 1);
+		List<TicketAssemblaDto> result = new ArrayList<TicketAssemblaDto>();
+		for (Ticket ticket : ticketList) {
+			result.add(ticket.toDto());
 		}
 
-		for (TicketAssemblaDto ticketAssemblaDto : ticketListAssemblaDto.getTickets()) {
-			Object ticketObj = ticketService.findByExternalRefId(Ticket.class, ticketAssemblaDto.getId());
-			Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
-
-			Object reporterObj = userService.findByExternalRefId(User.class, ticketAssemblaDto.getReporterId());
-			User reporter = reporterObj != null ? (User) reporterObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(), valResult.getUser().getBearerToken());
-
-			if (reporterObj == null) {
-				userService.create(reporter);
-			} else {
-				userService.update(reporter);
-			}
-
-			Object assignedObj = userService.findByExternalRefId(User.class, ticketAssemblaDto.getAssignedToId());
-			User assignedTo = null;
-
-			if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-				assignedTo = assignedObj != null ? (User) assignedObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(), valResult.getUser().getBearerToken());
-
-				if (assignedObj == null) {
-					userService.create(assignedTo);
-				} else {
-					userService.update(assignedTo);
-				}
-			}
-			/*
-			 * START : MILESTONE SYNC
-			 */
-
-			Milestone milestone = null;
-
-			if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
-				MilestoneAssemblaDto milestoneAssemblaDto = RESTServiceUtil.convertMilestonXml(spaceId, ticketAssemblaDto.getMilestoneId(), valResult.getUser().getBearerToken());
-
-				if (milestoneAssemblaDto == null) {
-					return Response.status(500).entity("An error occured while trying to retrieve milestone detail for ticket id : " + ticketAssemblaDto.getId()).build();
-				}
-
-				Object milestonObj = milestoneService.findByExternalRefId(Milestone.class, ticketAssemblaDto.getMilestoneId());
-				milestone = milestonObj != null ? (Milestone) milestonObj : null;
-
-				if (milestone == null) {
-					milestone = new Milestone();
-				}
-
-				milestone.setExternalRefId(milestoneAssemblaDto.getId());
-				milestone.setPlannerType(milestoneAssemblaDto.getPlannerType());
-				milestone.setDescription(milestoneAssemblaDto.getDescription());
-				milestone.setReleaseNotes(milestoneAssemblaDto.getReleaseNotes());
-				milestone.setPrettyReleaseLevel(milestoneAssemblaDto.getPrettyReleaseLevel());
-				milestone.setCompletedDate(milestoneAssemblaDto.getCompletedDate() != null ? milestoneAssemblaDto.getCompletedDate().toDate() : null);
-				milestone.setDueDate(milestoneAssemblaDto.getDueDate() != null ? milestoneAssemblaDto.getDueDate().toDate() : null);
-				milestone.setCompleted(milestoneAssemblaDto.isCompleted());
-				milestone.setTitle(milestoneAssemblaDto.getTitle());
-
-				Object userCreatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getCreatedBy());
-				User mUserCreatedBy = userCreatedObj != null ? (User) userCreatedObj : RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getCreatedBy(), valResult.getUser().getBearerToken());
-
-				if (userCreatedObj == null) {
-					userService.create(mUserCreatedBy);
-				}
-
-				Object userUpdatedObj = userService.findByExternalRefId(User.class, milestoneAssemblaDto.getUpdatedBy());
-				User mUserUpdatedBy = userUpdatedObj != null ? (User) userUpdatedObj : RESTServiceUtil.convertUserXml(milestoneAssemblaDto.getUpdatedBy(), valResult.getUser().getBearerToken());
-
-				if (userUpdatedObj == null) {
-					userService.create(mUserUpdatedBy);
-				}
-
-				milestone.setCreatedBy(mUserCreatedBy);
-				milestone.setUpdatedBy(mUserUpdatedBy);
-
-				milestone.setSpace(space);
-				if (milestonObj == null) {
-					milestoneService.create(milestone);
-				} else {
-					milestoneService.update(milestone);
-				}
-			}
-			/*
-			 * END : MILESTONE SYNC
-			 */
-
-			Workflow workflow = workflowService.getWorkflowByName(ticketAssemblaDto.getCustomFields().getType());
-
-			/*
-			 * START : TICKET SYNC
-			 */
-			if (currentTicket != null) {
-				if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-					currentTicket.setAssignedTo(assignedTo);
-				}
-				currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null);
-				currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
-				currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
-				currentTicket.setExternalRefId(ticketAssemblaDto.getId());
-				currentTicket.setImportance(ticketAssemblaDto.getImportance());
-				currentTicket.setMilestone(milestone);
-				currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
-				currentTicket.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
-				currentTicket.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
-				currentTicket.setReporter(reporter);
-				currentTicket.setSpace(space);
-				currentTicket.setStatus(ticketAssemblaDto.getStatus());
-				currentTicket.setStory(ticketAssemblaDto.isStory());
-				currentTicket.setStoryImportance(ticketAssemblaDto.getStoryImportance());
-				currentTicket.setSummary(ticketAssemblaDto.getSummary());
-				currentTicket.setTicketNumber(ticketAssemblaDto.getNumber());
-				currentTicket.setTotalEstimate(ticketAssemblaDto.getTotalEstimate());
-				currentTicket.setTotalInvestedHours(ticketAssemblaDto.getTotalInvestedHours());
-				currentTicket.setTotalWorkingHours(ticketAssemblaDto.getTotalWorkingHours());
-				currentTicket.setWorkflow(workflow);
-				currentTicket.setWorkingHours(ticketAssemblaDto.getWorkingHours());
-
-				ticketService.update(currentTicket);
-			} else {
-				currentTicket = new Ticket(ticketAssemblaDto, space, milestone, reporter, assignedTo, workflow);
-				ticketService.create(currentTicket);
-			}
-
-			/*
-			 * END : TICKET SYNC
-			 */
-		}
+		TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
+		ticketListAssemblaDto.setTickets(result);
 
 		return Response.status(200).entity(ticketListAssemblaDto).build();
 	}
@@ -232,8 +106,6 @@ public class TicketRestService {
 	@GET
 	@Path("/ticketCount")
 	public Response getTicketCount(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId) {
-
-		int ticketsPerPage = 100;
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -248,48 +120,9 @@ public class TicketRestService {
 			return Response.status(500).entity("Invalid space id!").build();
 		}
 
-		TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
-		int page = 1;
-		int result = 0;
-		int ticketListSize = 0;
-		int pageIncrement = 5;
-
-		boolean wasNegative = false;
-		do {
-			String ticketsXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + valResult.getUser().getBearerToken());
-
-			if (!ticketsXml.isEmpty()) {
-
-				ticketListAssemblaDto = (TicketListAssemblaDto) RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
-				ticketListSize = ticketListAssemblaDto.getTickets().size();
-
-				System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
-
-			} else {
-				ticketListSize = 0;
-			}
-
-			if (ticketListSize == 0) {
-				page -= 1;
-				wasNegative = true;
-			} else {
-				if (page == 1 && ticketListSize < ticketsPerPage) {
-					result = ticketListSize;
-					break;
-				} else if (ticketListSize <= ticketsPerPage && ticketListSize > 0 && wasNegative) {
-					result = ((page - 1) * ticketsPerPage) + ticketListSize;
-					break;
-				}
-
-				page += pageIncrement;
-			}
-
-			System.out.println("Page : " + page + ", Page Increment : " + pageIncrement + ", Result : " + result + ", Ticket List Size : " + ticketListSize);
-		} while (result <= 0);
-
+		long ticketCount = ticketService.getTicketCountBySpace(spaceId);
 		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
-		ticketCountDto.setTicketCount(result);
-		System.out.println("Ticket Count : " + result);
+		ticketCountDto.setTicketCount(ticketCount);
 		return Response.status(200).entity(ticketCountDto).build();
 
 	}

@@ -105,7 +105,7 @@ public class Space extends RemoteEntity {
 	@Temporal(TemporalType.TIMESTAMP)
 	private Date lastPayerChangedAt = new Date();
 
-	@ManyToMany(mappedBy = "spaces")
+	@ManyToMany(mappedBy = "spaces", fetch = FetchType.LAZY)
 	private Set<User> users = new HashSet<User>();
 
 	public Space() {
@@ -377,6 +377,16 @@ public class Space extends RemoteEntity {
 
 	public void setLastPayerChangedAt(Date lastPayerChangedAt) {
 		this.lastPayerChangedAt = lastPayerChangedAt;
+	}
+
+	public void addUser(User user) {
+		users.add(user);
+		user.getSpaces().add(this);
+	}
+
+	public void removeUser(User user) {
+		users.remove(user);
+		user.getSpaces().remove(this);
 	}
 
 	public Set<User> getUsers() {

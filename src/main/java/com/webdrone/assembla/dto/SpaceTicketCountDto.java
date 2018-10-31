@@ -6,14 +6,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "spaceTicketCount")
 public class SpaceTicketCountDto {
 
-	private int ticketCount;
+	private long ticketCount;
 
 	@XmlElement(name = "count")
-	public int getTicketCount() {
+	public long getTicketCount() {
 		return ticketCount;
 	}
 
-	public void setTicketCount(int ticketCount) {
+	public void setTicketCount(long ticketCount) {
 		this.ticketCount = ticketCount;
 	}
 
