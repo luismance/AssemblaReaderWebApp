@@ -1,7 +1,6 @@
 package com.webdrone.main;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,7 +13,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.mysql.jdbc.DatabaseMetaData;
 import com.webdrone.assembla.dto.SpaceAssemblaDto;
 import com.webdrone.assembla.dto.SpaceListAssemblaDto;
 import com.webdrone.model.Space;
@@ -35,7 +33,7 @@ public class SpaceRestService {
 	public Response getSpaces(@HeaderParam("Authorization") String authorization) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
-
+		System.out.println("Retrieving Space List for " + valResult.getUser().getUsername());
 		if (valResult.getResponseCode() != 200) {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}

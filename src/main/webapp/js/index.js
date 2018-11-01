@@ -97,7 +97,7 @@ class TicketItem extends React.Component {
           {this.props.summary}
           {this.props.ticketType || this.props.ticketType != null ? "[" + this.props.ticketType + "]" : ""}
           <span class="badge">{this.props.number}</span>
-          <span class="badge">{ticketChanges ? "DROP : ""}</span>
+          {ticketChanges.length === 0 ? "" : <span class="fa fa-chevron-down" />}
         </a>
         <div class="panel-collapse collapse" id={"collapse" + this.props.number}>
           <div class="panel-body">{ticketChangesFull}</div>
@@ -122,7 +122,7 @@ class TicketList extends React.Component {
       <TicketItem id={ticket.id} summary={ticket.summary} number={ticket.number} spaceId={ticket["space-id"]} ticketType={ticket["ticket-type"]} />
     ));
     return (
-      <div id="ticketDiv" style={{ marginTop: "10px" }}>
+      <div id="ticketDiv" style={{ margin : "10px" }}>
         {listItems}
       </div>
     );
@@ -201,34 +201,38 @@ class SpaceList extends React.Component {
           Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
         },
         dataType: "text",
+        success : function(data) {
+          var ticketsJson = x2js.xml_str2json(data);
+          if (ticketsJson.tickets === undefined || ticketsJson.tickets.length == 0) {
+            console.log("No Tickets");
+          }else{
+            const tickets = ticketsJson.tickets.ticket.map(obj => obj);
+            var getTicketCountUrl = "rest/ticket/ticketCount?space_id=" + thisComp.state.currentSpaceId;
+            $.ajax({
+              type: "GET",
+              url: getTicketCountUrl,
+              headers: {
+                "Content-Type": "application/xml",
+                Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+              },
+              dataType: "text",
+              success : function(data) {
+                var ticketCount = x2js.xml_str2json(data);
+
+                console.log("Update Ticket Count : " + ticketCount.spaceTicketCount.count);
+                localStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
+                thisComp.setState({ tickets });
+              },
+              error: function(data) {
+                console.log("Error : " + JSON.stringify(data));
+              }
+            });
+          }
+        },
         error: function(data) {
           console.log("Error : " + JSON.stringify(data));
         }
-      }).done(function(data) {
-        var ticketsJson = x2js.xml_str2json(data);
-        const tickets = ticketsJson.tickets.ticket.map(obj => obj);
-
-        var getTicketCountUrl = "rest/ticket/ticketCount?space_id=" + thisComp.state.currentSpaceId;
-
-        $.ajax({
-          type: "GET",
-          url: getTicketCountUrl,
-          headers: {
-            "Content-Type": "application/xml",
-            Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
-          },
-          dataType: "text",
-          error: function(data) {
-            console.log("Error : " + JSON.stringify(data));
-          }
-        }).done(function(data) {
-          var ticketCount = x2js.xml_str2json(data);
-
-          console.log("Update Ticket Count : " + ticketCount.spaceTicketCount.count);
-          localStorage.setItem("totalTicketCount", ticketCount.spaceTicketCount.count);
-          thisComp.setState({ tickets });
-        });
-      });
+      }).done();
     } else {
       console.log("Current Space ID Undefined!");
     }
@@ -237,6 +241,28 @@ class SpaceList extends React.Component {
   updateSpace(currentSpaceId) {
     this.setState({ currentSpaceId });
     this.updateTickets();
+  }
+
+  syncdata(){
+    var userData = localStorage.getItem("userData");
+    var userItem = JSON.parse(userData);
+    var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
+    $.ajax({
+      type: "POST",
+      url: "rest/sync/syncdata",
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      data: syncRequest,
+      dataType: 'text',
+      success: function(data) {
+        window.alert("Sync started");
+      },
+      error: function(data) {
+        window.alert("Error syncing data");
+      }
+    });
   }
 
   logout() {
@@ -252,25 +278,6 @@ class SpaceList extends React.Component {
         </a>
       </li>
     ));
-
-    var displayPerPage = (
-      <div className="dropdown">
-        <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Tickets per page
-        </button>
-        <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
-            10
-          </a>
-          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
-            15
-          </a>
-          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
-            20
-          </a>
-        </div>
-      </div>
-    );
 
     var curPage = Number(localStorage.getItem("curPage"));
     var perPage = Number(localStorage.getItem("itemPerPage"));
@@ -314,8 +321,39 @@ class SpaceList extends React.Component {
         </li>
       );
 
-    var ticketPagination = (
-      <nav aria-label="Page navigation example">
+    var noAccess = (
+      <div>
+        <div class="panel panel-group">
+          <div class="panel-heading">No Access To Space</div>
+          <div class="panel-body">No Access To Space</div>
+        </div>
+      </div>
+    );
+
+    var ticketDisplay =(
+      <div>
+      <div className="dropdown">
+        <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Tickets per page
+        </button>
+        <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
+          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
+            10
+          </a>
+          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
+            15
+          </a>
+          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
+            20
+          </a>
+        </div>
+      </div>
+      <ul className="list-group">
+        <div id="ticketDiv" style={{ marginTop: "10px" }}>
+          <TicketList tickets={this.state.tickets} spaceId={this.state.currentSpaceId} />
+        </div>
+      </ul>
+      <nav aria-label="Page navigation">
         <ul className="pagination">
           <li className="page-item">
             <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
@@ -334,6 +372,7 @@ class SpaceList extends React.Component {
           </li>
         </ul>
       </nav>
+      </div>
     );
 
     return (
@@ -346,7 +385,11 @@ class SpaceList extends React.Component {
             <span className="navbar-toggler-icon" />
           </button>
           <div className="collapse navbar-collapse" id="navbarText">
-            <ul className="navbar-nav mr-auto" />
+            <ul className="navbar-nav mr-auto" >
+              <li class="nav-item active">
+                <a class="nav-link" onClick={this.syncdata}>Sync</a>
+              </li>
+            </ul>
             <span className="navbar-text">
               <a onClick={this.logout}>Logout</a>
             </span>
@@ -356,15 +399,9 @@ class SpaceList extends React.Component {
           <div>
             <ul className="nav nav-tabs">{spaceList}</ul>
           </div>
-
-          {displayPerPage}
-
-          <ul className="list-group">
-            <div id="ticketDiv" style={{ marginTop: "10px" }}>
-              <TicketList tickets={this.state.tickets} spaceId={this.state.currentSpaceId} />
-            </div>
-          </ul>
-          {ticketPagination}
+          <div className="panel-group">
+          {this.state.tickets.length === 0 ? noAccess : ticketDisplay}
+          </div>
         </div>
       </div>
     );

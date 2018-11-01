@@ -1,10 +1,5 @@
 package com.webdrone.thread;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.transaction.HeuristicMixedException;

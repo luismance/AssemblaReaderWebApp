@@ -49,7 +49,7 @@ public class User extends BaseModel {
 	@OneToMany
 	private List<Role> userRoles = new ArrayList<Role>();
 
-	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.EAGER)
+	@ManyToMany(cascade = { CascadeType.PERSIST }, fetch = FetchType.EAGER)
 	@JoinTable(name = "user_space", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "space_id", referencedColumnName = "id"))
 	private Set<Space> spaces = new TreeSet<Space>();
 

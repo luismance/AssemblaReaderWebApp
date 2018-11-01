@@ -84,6 +84,8 @@ public class TicketRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
+		System.out.println("Retrieving Ticket List for " + valResult.getUser().getUsername());
+
 		Object obj = spaceService.findByExternalRefId(Space.class, spaceId);
 		Space space = obj != null ? (Space) obj : null;
 
@@ -113,6 +115,8 @@ public class TicketRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
+		System.out.println("Retrieving Ticket Count for " + valResult.getUser().getUsername());
+
 		Object obj = spaceService.findByExternalRefId(Space.class, spaceId);
 		Space space = obj != null ? (Space) obj : null;
 
@@ -136,6 +140,8 @@ public class TicketRestService {
 		if (valResult.getResponseCode() != 200) {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
+		
+		System.out.println("Retrieving Ticket Changes for " + valResult.getUser().getUsername());
 
 		Object obj = spaceService.findByExternalRefId(Space.class, spaceId);
 		Space space = obj != null ? (Space) obj : null;
@@ -152,10 +158,16 @@ public class TicketRestService {
 			String ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber + "/ticket_comments.xml?per_page=100", true,
 					"Bearer " + valResult.getUser().getBearerToken());
 
-			if (!ticketChangesXml.isEmpty()) {
+			ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
 
+			if (ticketChangesList == null) {
+				RESTServiceUtil.refreshBearerToken(valResult.getUser());
+				ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber + "/ticket_comments.xml?per_page=100", true,
+						"Bearer " + valResult.getUser().getBearerToken());
 				ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
+			}
 
+			if (ticketChangesList != null) {
 				Ticket ticket = ticketService.getTicketBySpaceAndNumber(space.getId(), ticketNumber);
 
 				// Temporary Workflow Transition

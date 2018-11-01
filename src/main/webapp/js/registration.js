@@ -38,7 +38,26 @@ class RegistrationForm extends React.Component {
           var x2js = new X2JS();
           var userJson = x2js.xml_str2json(data);
           localStorage.setItem("userData", JSON.stringify(userJson));
-          window.location.href = "index.html";
+          var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
+          $.ajax({
+            type: "POST",
+            url: "rest/sync/syncdata",
+            headers: {
+              "Content-Type": "application/xml",
+              Authorization: "Basic " + Base64.encode(userJson.user.username + ":" + userJson.user.password)
+            },
+            data: syncRequest,
+            dataType: 'text',
+            success: function(data) {
+              window.location.href = "index.html";
+            },
+            error: function(data) {
+              $("#registrationErrorMessage").html("<strong>Error!</strong>" + data.responseText);
+              $("#registrationErrorMessage").show();
+            }
+          });
+
+
         },
         error: function(data) {
           $("#registrationErrorMessage").html("<strong>Error!</strong>" + data.responseText);
