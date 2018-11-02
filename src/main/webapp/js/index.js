@@ -33,8 +33,11 @@ class TicketItem extends React.Component {
     });
   }
 
+
   render() {
     var ticketChanges = "";
+    var spanAsterisk = <span class='fa fa-asterisk' />;
+    var spanArrow = <span class='fa fa-arrow-right' />;
 
     if (this.state.ticketChanges instanceof Array) {
       var ticketChangesArray = this.state.ticketChanges.map((ticketChange, i) => {
@@ -43,11 +46,14 @@ class TicketItem extends React.Component {
           return "";
         } else {
           var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
-          var finalTicketChanges = "";
+          var finalTicketChanges="";
           var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
           for (var i = 1; i < formattedTicketChangesArray.length; i++) {
             var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
-            finalTicketChanges += ">" + ticketCommentItem[0].replace("_id", "").replace("_", " ") + " : " + ticketCommentItem[1] + " => " + ticketCommentItem[2];
+            var tcProp = ticketCommentItem[0].replace("_id", "").replace("_", " ");
+            var tcPrevValue = ticketCommentItem[1];
+            var tcNewValue = ticketCommentItem[2];
+            finalTicketChanges += tcProp + " : " + tcPrevValue + "=>" +tcNewValue;
             if (i < formattedTicketChangesArray.length) {
               finalTicketChanges += "\n";
             }
@@ -322,56 +328,55 @@ class SpaceList extends React.Component {
       );
 
     var noAccess = (
-      <div>
-        <div class="panel panel-group">
-          <div class="panel-heading">No Access To Space</div>
-          <div class="panel-body">No Access To Space</div>
-        </div>
+      <div id="noAccess"class="panel panel-danger" style={{ margin : "10px"}}>
+        <a class="list-group-item" data-toggle="collapse">
+          <div class="panel-heading">Cannot access tickets!</div>
+        </a>
       </div>
     );
 
     var ticketDisplay =(
       <div>
-      <div className="dropdown">
-        <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Tickets per page
-        </button>
-        <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
-            10
-          </a>
-          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
-            15
-          </a>
-          <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
-            20
-          </a>
-        </div>
-      </div>
-      <ul className="list-group">
-        <div id="ticketDiv" style={{ marginTop: "10px" }}>
-          <TicketList tickets={this.state.tickets} spaceId={this.state.currentSpaceId} />
-        </div>
-      </ul>
-      <nav aria-label="Page navigation">
-        <ul className="pagination">
-          <li className="page-item">
-            <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-              <span className="sr-only">Previous</span>
+        <div className="dropdown" style={{ marginTop: "10px", marginLeft: "10px" }}>
+          <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Tickets per page
+          </button>
+          <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
+              10
             </a>
-          </li>
-          {firstPage}
-          {secondPage}
-          {thirdPage}
-          <li className="page-item">
-            <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
-              <span aria-hidden="true">&raquo;</span>
-              <span className="sr-only">Next</span>
+            <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
+              15
             </a>
-          </li>
+            <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
+              20
+            </a>
+          </div>
+        </div>
+        <ul className="list-group">
+          <div id="ticketDiv" style={{ marginTop: "10px" }}>
+            <TicketList tickets={this.state.tickets} spaceId={this.state.currentSpaceId} />
+          </div>
         </ul>
-      </nav>
+        <nav aria-label="Page navigation" style={{ marginLeft: "10px" }}>
+          <ul className="pagination">
+            <li className="page-item">
+              <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+                <span className="sr-only">Previous</span>
+              </a>
+            </li>
+            {firstPage}
+            {secondPage}
+            {thirdPage}
+            <li className="page-item">
+              <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+                <span className="sr-only">Next</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
       </div>
     );
 
