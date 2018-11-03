@@ -1,9 +1,11 @@
-class SpaceList extends React.Component {
+class SyncData extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       spaceCount: 0,
-      ticketCount : 0
+      ticketCount : 0,
+      milestoneCount : 0,
+      syncStatus : "Starting Sync"
     };
     this.componentDidMount = this.componentDidMount.bind(this);
   }
@@ -18,11 +20,8 @@ class SpaceList extends React.Component {
     }
 
     var thisComp = this;
-    var currSpaceCount = 0;
-    var currTicketCount = 0;
-    var stopSpaceCount = false;
-    var stopTicketCount = false;
     var x2js = new X2JS();
+    var syncStatus = "";
 
     var ticketCounterBuffer=0;
     window.setInterval(function(){
@@ -39,11 +38,27 @@ class SpaceList extends React.Component {
           var sCount = x2js.xml_str2json(data);
           var spaceCount = sCount.spaceCount.count;
           thisComp.setState({spaceCount});
-          stopSpaceCount = spaceCount == currSpaceCount;
-          currSpaceCount = spaceCount;
         },
         error: function(data) {
-          window.alert("Error counting space");
+          console.log("Error counting space");
+        }
+      });
+
+      $.ajax({
+        type: "GET",
+        url: "rest/milestone/userMilestoneCount",
+        headers: {
+          "Content-Type": "application/xml",
+          Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+        },
+        dataType: 'text',
+        success: function(data) {
+          var tCount = x2js.xml_str2json(data);
+          var milestoneCount = tCount.spaceMilestoneCount.count;
+          syncStatus = tCount.spaceMilestoneCount.sync_status;
+          thisComp.setState({milestoneCount});
+        },
+        error: function(data) {
         }
       });
 
@@ -58,22 +73,15 @@ class SpaceList extends React.Component {
         success: function(data) {
           var tCount = x2js.xml_str2json(data);
           var ticketCount = tCount.spaceTicketCount.count;
+          syncStatus = tCount.spaceTicketCount.sync_status;
           thisComp.setState({ticketCount});
-          stopTicketCount = ticketCount == currTicketCount;
+          thisComp.setState({syncStatus});
 
-          if(stopTicketCount){
-            ticketCounterBuffer++;
-          }else{
-            ticketCounterBuffer=0;
-          }
-          currTicketCount = ticketCount;
         },
         error: function(data) {
-          window.alert("Error counting ticket");
         }
       });
-      console.log("space "+ stopSpaceCount + ",ticket "+stopTicketCount+",buffer "+ticketCounterBuffer);
-      if(ticketCounterBuffer > 60){
+      if(syncStatus == "Sync Done"){
         console.log("stopped sync");
         clearInterval();
         window.location.href = "index.html";
@@ -97,10 +105,10 @@ class SpaceList extends React.Component {
       data: syncRequest,
       dataType: 'text',
       success: function(data) {
-        window.alert("Sync started");
+        console.log("Sync started");
       },
       error: function(data) {
-        window.alert("Error syncing data");
+        console.log("Error syncing data");
       }
     });
   }
@@ -133,13 +141,40 @@ class SpaceList extends React.Component {
             </span>
           </div>
         </nav>
-        <div>
-          <h1>{this.state.spaceCount}</h1>
-          <h2>{this.state.ticketCount}</h2>
+        <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+          <h4 class="display-4">{this.state.syncStatus}</h4>
+        </div>
+        <div class="container">
+          <div class="card-deck mb-3 text-center">
+            <div class="card mb-4 shadow-sm">
+              <div class="card-header">
+                <h4 class="my-0 font-weight-normal">Space Count</h4>
+              </div>
+              <div class="card-body">
+                <h1 class="card-title pricing-card-title">{this.state.spaceCount}</h1>
+              </div>
+            </div>
+            <div class="card mb-4 shadow-sm">
+              <div class="card-header">
+                <h4 class="my-0 font-weight-normal">Milestone Count</h4>
+              </div>
+              <div class="card-body">
+                <h1 class="card-title pricing-card-title">{this.state.milestoneCount}</h1>
+              </div>
+            </div>
+            <div class="card mb-4 shadow-sm">
+              <div class="card-header">
+                <h4 class="my-0 font-weight-normal">Ticket Count</h4>
+              </div>
+              <div class="card-body">
+                <h1 class="card-title pricing-card-title">{this.state.ticketCount}</h1>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 }
 
-ReactDOM.render(React.createElement(SpaceList), document.getElementById("app"));
+ReactDOM.render(React.createElement(SyncData), document.getElementById("app"));

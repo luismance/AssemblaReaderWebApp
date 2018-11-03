@@ -263,18 +263,17 @@ class SpaceList extends React.Component {
       data: syncRequest,
       dataType: 'text',
       success: function(data) {
-        window.alert("Sync started");
         window.location.href = "syncdata.html";
       },
       error: function(data) {
-        window.alert("Error syncing data");
+        console.log("Error syncing data")
       }
     });
   }
 
   logout() {
     localStorage.clear();
-    window.location.href = "/assemblareader/login.html";
+    window.location.href = "login.html";
   }
 
   render() {

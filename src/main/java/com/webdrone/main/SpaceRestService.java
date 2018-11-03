@@ -60,7 +60,6 @@ public class SpaceRestService {
 	public Response getSpaceCount(@HeaderParam("Authorization") String authorization) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
-		System.out.println("Retrieving Space List for " + valResult.getUser().getUsername());
 		if (valResult.getResponseCode() != 200) {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}

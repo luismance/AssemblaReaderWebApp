@@ -68,6 +68,9 @@ public class SyncUserDataThread implements Runnable {
 
 				SpaceListAssemblaDto spaceListAssemblaDto = (SpaceListAssemblaDto) RESTServiceUtil.unmarshaller(SpaceListAssemblaDto.class, spacesXml);
 
+				currentUser.setSyncStatus("Retrieving Spaces");
+				userService.threadUpdate(utx, entityManager, currentUser);
+				
 				for (SpaceAssemblaDto spaceAssemblaDto : spaceListAssemblaDto.getSpaceDtos()) {
 
 					Object resultSpace = spaceService.findByExternalRefId(entityManager, Space.class, spaceAssemblaDto.getId());
@@ -124,14 +127,25 @@ public class SyncUserDataThread implements Runnable {
 					}
 
 				}
+				
+				currentUser.setSyncStatus("Space sync done");
 
 				userService.threadUpdate(utx, entityManager, currentUser);
 
 				System.out.println("DONE SPACE Sync");
 
 				System.out.println("START MILESTONE Sync");
+				
+				currentUser = userService.findUserByUsername(entityManager, username);
+				
+				currentUser.setSyncStatus("Start milestones sync");
+				userService.threadUpdate(utx, entityManager, currentUser);
 				for (Space space : currentUser.getSpaces()) {
 					System.out.println("Starting MILESTONE Sync for SPACE " + space.getExternalRefId());
+					
+					currentUser.setSyncStatus("Syncing milestones from " + space.getWikiname());
+					userService.threadUpdate(utx, entityManager, currentUser);
+					
 					int milestonesPerPage = 100;
 					int milestonePage = 1;
 					Object milestoneObj = null;
@@ -201,13 +215,19 @@ public class SyncUserDataThread implements Runnable {
 					System.out.println("MILESTONE Sync for SPACE " + space.getExternalRefId() + " DONE");
 				}
 
+				currentUser.setSyncStatus("Milestone sync done");
+				userService.threadUpdate(utx, entityManager, currentUser);
 				System.out.println("END MILESTONE Sync");
 
 				System.out.println("START TICKET Sync");
+				currentUser.setSyncStatus("Start tickets sync");
+				userService.threadUpdate(utx, entityManager, currentUser);
 				int ticketsPerPage = 100;
 
 				for (Space space : currentUser.getSpaces()) {
 					System.out.println("Current Space : " + space.getExternalRefId());
+					currentUser.setSyncStatus("Syncing tickets from " + space.getWikiname());
+					userService.threadUpdate(utx, entityManager, currentUser);
 					if (space != null) {
 						TicketListAssemblaDto ticketListAssemblaDto = new TicketListAssemblaDto();
 						int page = 1;
@@ -305,6 +325,8 @@ public class SyncUserDataThread implements Runnable {
 				}
 
 				System.out.println("END TICKET Sync");
+				currentUser.setSyncStatus("Sync Done");
+				userService.threadUpdate(utx, entityManager, currentUser);
 			} else {
 				System.out.println("User is null");
 			}

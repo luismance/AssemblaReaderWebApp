@@ -84,7 +84,6 @@ public class BaseService<T extends BaseModel> {
 
 	public Object threadUpdate(UserTransaction utx, EntityManager em, Object object)
 			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
-
 		utx.begin();
 		em.joinTransaction();
 		em.merge(object);
@@ -93,7 +92,7 @@ public class BaseService<T extends BaseModel> {
 		utx.commit();
 		return object;
 	}
-
+	
 	public Object update(Object object) {
 		return update(getEntityManager(), object);
 	}

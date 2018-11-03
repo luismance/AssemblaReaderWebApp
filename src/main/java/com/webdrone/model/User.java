@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -49,9 +48,12 @@ public class User extends BaseModel {
 	@OneToMany
 	private List<Role> userRoles = new ArrayList<Role>();
 
-	@ManyToMany(cascade = { CascadeType.PERSIST }, fetch = FetchType.EAGER)
+	@Column(name = "SYNC_STATUS", length = 255, nullable = true)
+	private String syncStatus;
+
+	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.EAGER)
 	@JoinTable(name = "user_space", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "space_id", referencedColumnName = "id"))
-	private Set<Space> spaces = new TreeSet<Space>();
+	private Set<Space> spaces = new HashSet<Space>();
 
 	public User() {
 		super();
@@ -157,6 +159,14 @@ public class User extends BaseModel {
 
 	public void setSpaces(Set<Space> spaces) {
 		this.spaces = spaces;
+	}
+
+	public String getSyncStatus() {
+		return syncStatus;
+	}
+
+	public void setSyncStatus(String syncStatus) {
+		this.syncStatus = syncStatus;
 	}
 
 }

@@ -3,20 +3,19 @@ package com.webdrone.assembla.dto;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "spaceTicketCount")
-public class SpaceTicketCountDto {
-
-	private long ticketCount;
+@XmlRootElement(name = "spaceMilestoneCount")
+public class SpaceMilestoneCountDto {
+	private long milestoneCount;
 
 	private String syncStatus;
 
 	@XmlElement(name = "count")
-	public long getTicketCount() {
-		return ticketCount;
+	public long getMilestoneCount() {
+		return milestoneCount;
 	}
 
-	public void setTicketCount(long ticketCount) {
-		this.ticketCount = ticketCount;
+	public void setMilestoneCount(long milestoneCount) {
+		this.milestoneCount = milestoneCount;
 	}
 
 	@XmlElement(name = "sync_status")
@@ -27,5 +26,4 @@ public class SpaceTicketCountDto {
 	public void setSyncStatus(String syncStatus) {
 		this.syncStatus = syncStatus;
 	}
-
 }

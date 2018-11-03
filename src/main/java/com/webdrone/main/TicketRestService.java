@@ -29,11 +29,9 @@ import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
 import com.webdrone.model.WorkflowTransition;
 import com.webdrone.model.WorkflowTransitionInstance;
-import com.webdrone.service.MilestoneService;
 import com.webdrone.service.SpaceService;
 import com.webdrone.service.TicketService;
 import com.webdrone.service.UserService;
-import com.webdrone.service.WorkflowService;
 import com.webdrone.service.WorkflowTransitionInstanceService;
 import com.webdrone.service.WorkflowTransitionService;
 import com.webdrone.util.ExpressionLanguageResultEnum;
@@ -54,12 +52,6 @@ public class TicketRestService {
 
 	@Inject
 	private TicketService ticketService;
-
-	@Inject
-	private MilestoneService milestoneService;
-
-	@Inject
-	private WorkflowService workflowService;
 
 	@Inject
 	private WorkflowTransitionService workflowTransitionService;
@@ -115,8 +107,6 @@ public class TicketRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		System.out.println("Retrieving Ticket Count for " + valResult.getUser().getUsername());
-
 		Object obj = spaceService.findByExternalRefId(Space.class, spaceId);
 		Space space = obj != null ? (Space) obj : null;
 
@@ -127,6 +117,7 @@ public class TicketRestService {
 		long ticketCount = ticketService.getTicketCountBySpace(spaceId);
 		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
 		ticketCountDto.setTicketCount(ticketCount);
+		ticketCountDto.setSyncStatus(valResult.getResponseMessage());
 		return Response.status(200).entity(ticketCountDto).build();
 
 	}
@@ -141,8 +132,6 @@ public class TicketRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		System.out.println("Retrieving Ticket Count for " + valResult.getUser().getUsername());
-
 		long ticketCount = 0;
 		for (Space space : valResult.getUser().getSpaces()) {
 			ticketCount += ticketService.getTicketCountBySpace(space.getExternalRefId());
@@ -150,6 +139,7 @@ public class TicketRestService {
 
 		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
 		ticketCountDto.setTicketCount(ticketCount);
+		ticketCountDto.setSyncStatus(valResult.getUser().getSyncStatus());
 		return Response.status(200).entity(ticketCountDto).build();
 
 	}
