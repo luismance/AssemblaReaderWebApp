@@ -4,6 +4,7 @@ import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 
 import com.webdrone.model.Space;
+import com.webdrone.model.Ticket;
 
 @Stateless
 public class SpaceService extends BaseService<Space> {
@@ -16,4 +17,5 @@ public class SpaceService extends BaseService<Space> {
 		super();
 		this.setEntityManager(em);
 	}
+
 }

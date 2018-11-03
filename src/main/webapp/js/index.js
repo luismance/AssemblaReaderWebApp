@@ -264,6 +264,7 @@ class SpaceList extends React.Component {
       dataType: 'text',
       success: function(data) {
         window.alert("Sync started");
+        window.location.href = "syncdata.html";
       },
       error: function(data) {
         window.alert("Error syncing data");

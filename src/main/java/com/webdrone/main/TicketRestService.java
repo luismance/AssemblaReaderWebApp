@@ -132,6 +132,29 @@ public class TicketRestService {
 	}
 
 	@GET
+	@Path("/userTicketCount")
+	public Response totalTicketCount(@HeaderParam("Authorization") String authorization) {
+
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		System.out.println("Retrieving Ticket Count for " + valResult.getUser().getUsername());
+
+		long ticketCount = 0;
+		for (Space space : valResult.getUser().getSpaces()) {
+			ticketCount += ticketService.getTicketCountBySpace(space.getExternalRefId());
+		}
+
+		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
+		ticketCountDto.setTicketCount(ticketCount);
+		return Response.status(200).entity(ticketCountDto).build();
+
+	}
+
+	@GET
 	@Path("/ticketChanges")
 	public Response getTicketChanges(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId, @QueryParam("ticket_num") String ticketNumber) {
 
@@ -140,7 +163,7 @@ public class TicketRestService {
 		if (valResult.getResponseCode() != 200) {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
-		
+
 		System.out.println("Retrieving Ticket Changes for " + valResult.getUser().getUsername());
 
 		Object obj = spaceService.findByExternalRefId(Space.class, spaceId);

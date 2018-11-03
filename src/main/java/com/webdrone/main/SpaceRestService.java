@@ -14,6 +14,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.webdrone.assembla.dto.SpaceAssemblaDto;
+import com.webdrone.assembla.dto.SpaceCountDto;
 import com.webdrone.assembla.dto.SpaceListAssemblaDto;
 import com.webdrone.model.Space;
 import com.webdrone.service.UserService;
@@ -52,5 +53,21 @@ public class SpaceRestService {
 		spaceListResult.setSpaceDtos(sadList);
 
 		return Response.status(200).entity(spaceListResult).build();
+	}
+
+	@GET
+	@Path("/spaceCount")
+	public Response getSpaceCount(@HeaderParam("Authorization") String authorization) {
+
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+		System.out.println("Retrieving Space List for " + valResult.getUser().getUsername());
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		SpaceCountDto spaceCountDto = new SpaceCountDto();
+		spaceCountDto.setSpaceCount(valResult.getUser().getSpaces().size());
+
+		return Response.status(200).entity(spaceCountDto).build();
 	}
 }
