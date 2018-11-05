@@ -116,6 +116,7 @@ public class UserRestService {
 			if (user != null) {
 
 				user.setPassword(RESTServiceUtil.encryptToSHA256(userDto.getPassword()));
+				user.setSyncStatus("Ready to start");
 				userService.update(user);
 
 				userDto = new UserDto(user);

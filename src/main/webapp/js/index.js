@@ -15,7 +15,7 @@ class TicketItem extends React.Component {
     if(userItem == null){
       window.location.href = "login.html";
     }
-    
+
     var x2js = new X2JS();
 
     $.ajax({
@@ -153,6 +153,14 @@ class SpaceList extends React.Component {
   }
 
   componentDidMount() {
+
+    var userData = localStorage.getItem("userData");
+    var userItem = JSON.parse(userData);
+
+    if(userItem == null){
+      window.location.href = "login.html";
+    }
+
     var thisComp = this;
     var userItem = JSON.parse(localStorage.getItem("userData"));
     var x2js = new X2JS();
@@ -252,31 +260,6 @@ class SpaceList extends React.Component {
   updateSpace(currentSpaceId) {
     this.setState({ currentSpaceId });
     this.updateTickets();
-  }
-
-  syncdata(){
-
-    window.location.href = "syncdata.html";
-
-    /*var userData = localStorage.getItem("userData");
-    var userItem = JSON.parse(userData);
-    var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
-    $.ajax({
-      type: "POST",
-      url: "rest/sync/syncdata",
-      headers: {
-        "Content-Type": "application/xml",
-        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
-      },
-      data: syncRequest,
-      dataType: 'text',
-      success: function(data) {
-        window.location.href = "syncdata.html";
-      },
-      error: function(data) {
-        console.log("Error syncing data")
-      }
-    });*/
   }
 
   logout() {
@@ -400,7 +383,7 @@ class SpaceList extends React.Component {
           <div className="collapse navbar-collapse" id="navbarText">
             <ul className="navbar-nav mr-auto" >
               <li class="nav-item active">
-                <a class="nav-link" onClick={this.syncdata}>Sync</a>
+                <a class="nav-link" href="syncdata.html">Sync</a>
               </li>
             </ul>
             <span className="navbar-text">
