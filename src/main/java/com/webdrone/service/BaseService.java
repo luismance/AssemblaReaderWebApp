@@ -46,10 +46,15 @@ public class BaseService<T extends BaseModel> {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public List<T> listAll(Class clazz) {
-		TypedQuery<T> query = getEntityManager().createQuery("SELECT s FROM " + clazz.getSimpleName() + " s ORDER BY s.id", clazz);
+	public List<T> listAll(EntityManager em, Class clazz) {
+		TypedQuery<T> query = em.createQuery("SELECT s FROM " + clazz.getSimpleName() + " s ORDER BY s.id", clazz);
 
 		return query.getResultList();
+	}
+
+	@SuppressWarnings({ "rawtypes" })
+	public List<T> listAll(Class clazz) {
+		return listAll(getEntityManager(), clazz);
 	}
 
 	public Object create(EntityManager em, Object object) {
@@ -71,8 +76,7 @@ public class BaseService<T extends BaseModel> {
 		return object;
 	}
 
-	public Object threadCreate(UserTransaction utx, EntityManager em, Object object)
-			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
+	public Object threadCreate(UserTransaction utx, EntityManager em, Object object) throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
 		utx.begin();
 		em.joinTransaction();
 		em.persist(object);
@@ -82,8 +86,7 @@ public class BaseService<T extends BaseModel> {
 		return object;
 	}
 
-	public Object threadUpdate(UserTransaction utx, EntityManager em, Object object)
-			throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
+	public Object threadUpdate(UserTransaction utx, EntityManager em, Object object) throws NotSupportedException, SystemException, SecurityException, IllegalStateException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
 		utx.begin();
 		em.joinTransaction();
 		em.merge(object);
@@ -92,7 +95,7 @@ public class BaseService<T extends BaseModel> {
 		utx.commit();
 		return object;
 	}
-	
+
 	public Object update(Object object) {
 		return update(getEntityManager(), object);
 	}

@@ -5,12 +5,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
@@ -107,6 +104,9 @@ public class Space extends RemoteEntity {
 
 	@ManyToMany(mappedBy = "spaces", fetch = FetchType.LAZY)
 	private Set<User> users = new HashSet<User>();
+
+	@Column(name = "CAN_PROCESS_TICKET_CHANGES")
+	private boolean canProcessTicketChanges = false;
 
 	public Space() {
 		super();
@@ -395,6 +395,14 @@ public class Space extends RemoteEntity {
 
 	public void setUsers(Set<User> users) {
 		this.users = users;
+	}
+
+	public boolean isCanProcessTicketChanges() {
+		return canProcessTicketChanges;
+	}
+
+	public void setCanProcessTicketChanges(boolean canProcessTicketChanges) {
+		this.canProcessTicketChanges = canProcessTicketChanges;
 	}
 
 }

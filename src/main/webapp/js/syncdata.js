@@ -5,25 +5,34 @@ class SyncData extends React.Component {
       spaceCount: 0,
       ticketCount : 0,
       milestoneCount : 0,
-      syncStatus : "Starting Sync"
+      ticketChangesCount : 0,
+      syncStatus : "Sync UI"
     };
     this.componentDidMount = this.componentDidMount.bind(this);
+    this.syncdata = this.syncdata.bind(this);
   }
 
   componentDidMount() {
 
+    $("#btnSync").attr("disabled", true);
     var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
 
     if(userItem == null){
       window.location.href = "login.html";
     }
-
     var thisComp = this;
     var x2js = new X2JS();
     var syncStatus = "";
 
-    var ticketCounterBuffer=0;
+    var userData = localStorage.getItem("userData");
+    var userItem = JSON.parse(userData);
+    var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
+
+    if(this.state.syncStatus == "Sync UI"){
+        $("#btnSync").attr("disabled", false);
+    }
+
     window.setInterval(function(){
 
       $.ajax({
@@ -81,17 +90,51 @@ class SyncData extends React.Component {
         error: function(data) {
         }
       });
+
+      $.ajax({
+        type: "GET",
+        url: "rest/ticket/userTicketChangesCount",
+        headers: {
+          "Content-Type": "application/xml",
+          Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+        },
+        dataType: 'text',
+        success: function(data) {
+          var tCount = x2js.xml_str2json(data);
+          var ticketChangesCount = tCount.spaceTicketChangesCount.count;
+          syncStatus = tCount.spaceTicketChangesCount.sync_status;
+          thisComp.setState({ticketChangesCount});
+          thisComp.setState({syncStatus});
+
+        },
+        error: function(data) {
+        }
+      });
+
       if(syncStatus == "Sync Done"){
         console.log("stopped sync");
         clearInterval();
         window.location.href = "index.html";
       }
     }, 1000);
+
   }
 
 
 
   syncdata(){
+
+    $("#btnSync").attr("disabled", true);
+    var userData = localStorage.getItem("userData");
+    var userItem = JSON.parse(userData);
+
+    if(userItem == null){
+      window.location.href = "login.html";
+    }
+    var thisComp = this;
+    var x2js = new X2JS();
+    var syncStatus = "";
+
     var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
@@ -105,12 +148,13 @@ class SyncData extends React.Component {
       data: syncRequest,
       dataType: 'text',
       success: function(data) {
-        console.log("Sync started");
       },
       error: function(data) {
-        console.log("Error syncing data");
+        console.log("Error syncing data")
       }
     });
+
+
   }
 
   logout() {
@@ -124,7 +168,7 @@ class SyncData extends React.Component {
     return (
       <div>
         <nav className="navbar navbar-expand-lg navbar-light bg-light">
-          <a className="navbar-brand" href="#">
+          <a className="navbar-brand" href="index.html">
             Ticket Monitor
           </a>
           <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
@@ -143,36 +187,47 @@ class SyncData extends React.Component {
         </nav>
         <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
           <h4 class="display-4">{this.state.syncStatus}</h4>
+          <a id="btnSync" href="#" class="btn btn-primary my-2" onClick={this.syncdata}>Start Sync</a>
         </div>
         <div class="container">
           <div class="card-deck mb-3 text-center">
-            <div class="card mb-4 shadow-sm">
-              <div class="card-header">
-                <h4 class="my-0 font-weight-normal">Space Count</h4>
+              <div class="card mb-4 shadow-sm">
+                <div class="card-header">
+                  <h4 class="my-0 font-weight-normal">Space Count</h4>
+                </div>
+                <div class="card-body">
+                  <h1 class="card-title pricing-card-title">{this.state.spaceCount}</h1>
+                </div>
               </div>
-              <div class="card-body">
-                <h1 class="card-title pricing-card-title">{this.state.spaceCount}</h1>
+              <div class="card mb-4 shadow-sm">
+                <div class="card-header">
+                  <h4 class="my-0 font-weight-normal">Milestone Count</h4>
+                </div>
+                <div class="card-body">
+                  <h1 class="card-title pricing-card-title">{this.state.milestoneCount}</h1>
+                </div>
               </div>
             </div>
-            <div class="card mb-4 shadow-sm">
-              <div class="card-header">
-                <h4 class="my-0 font-weight-normal">Milestone Count</h4>
+            <div class="card-deck mb-3 text-center">
+              <div class="card mb-4 shadow-sm">
+                <div class="card-header">
+                  <h4 class="my-0 font-weight-normal">Ticket Count</h4>
+                </div>
+                <div class="card-body">
+                  <h1 class="card-title pricing-card-title">{this.state.ticketCount}</h1>
+                </div>
               </div>
-              <div class="card-body">
-                <h1 class="card-title pricing-card-title">{this.state.milestoneCount}</h1>
-              </div>
-            </div>
-            <div class="card mb-4 shadow-sm">
-              <div class="card-header">
-                <h4 class="my-0 font-weight-normal">Ticket Count</h4>
-              </div>
-              <div class="card-body">
-                <h1 class="card-title pricing-card-title">{this.state.ticketCount}</h1>
+              <div class="card mb-4 shadow-sm">
+                <div class="card-header">
+                  <h4 class="my-0 font-weight-normal">Ticket Changes Count</h4>
+                </div>
+                <div class="card-body">
+                  <h1 class="card-title pricing-card-title">{this.state.ticketChangesCount}</h1>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
     );
   }
 }

@@ -28,7 +28,7 @@ class LoginForm extends React.Component {
   loginUser(){
 
     if(localStorage.getItem("userData")){
-      window.location.href = "/assemblareader/index.html";
+      window.location.href = "index.html";
     }
 
     var userName = $('#username').val();
@@ -48,7 +48,7 @@ class LoginForm extends React.Component {
         var x2js = new X2JS();
         var userJson = x2js.xml_str2json(data);
         localStorage.setItem("userData", JSON.stringify(userJson));
-        window.location.href = "/assemblareader/index.html";
+        window.location.href = "index.html";
       },
       error: function(data){
         $("#loginErrorMessage").html("<strong>Error!</strong><br/>"+data.responseText);

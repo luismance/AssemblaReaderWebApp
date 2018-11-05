@@ -11,6 +11,11 @@ class TicketItem extends React.Component {
     var thisComp = this;
     var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
+
+    if(userItem == null){
+      window.location.href = "login.html";
+    }
+    
     var x2js = new X2JS();
 
     $.ajax({
@@ -40,7 +45,7 @@ class TicketItem extends React.Component {
     var spanArrow = <span class='fa fa-arrow-right' />;
 
     if (this.state.ticketChanges instanceof Array) {
-      var ticketChangesArray = this.state.ticketChanges.map((ticketChange, i) => {
+        var ticketChangesArray = this.state.ticketChanges.map((ticketChange, i) => {
         var hasViolation = ticketChange["has-violation"];
         if (ticketChange["ticket-changes"].includes("--- []")) {
           return "";
@@ -250,7 +255,10 @@ class SpaceList extends React.Component {
   }
 
   syncdata(){
-    var userData = localStorage.getItem("userData");
+
+    window.location.href = "syncdata.html";
+
+    /*var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
     var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
     $.ajax({
@@ -268,7 +276,7 @@ class SpaceList extends React.Component {
       error: function(data) {
         console.log("Error syncing data")
       }
-    });
+    });*/
   }
 
   logout() {
@@ -383,7 +391,7 @@ class SpaceList extends React.Component {
     return (
       <div>
         <nav className="navbar navbar-expand-lg navbar-light bg-light">
-          <a className="navbar-brand" href="#">
+          <a className="navbar-brand" href="index.html">
             Ticket Monitor
           </a>
           <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">

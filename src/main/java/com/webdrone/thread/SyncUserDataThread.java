@@ -1,5 +1,13 @@
 package com.webdrone.thread;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.transaction.HeuristicMixedException;
@@ -14,17 +22,25 @@ import com.webdrone.assembla.dto.MilestoneListAssemblaDto;
 import com.webdrone.assembla.dto.SpaceAssemblaDto;
 import com.webdrone.assembla.dto.SpaceListAssemblaDto;
 import com.webdrone.assembla.dto.TicketAssemblaDto;
+import com.webdrone.assembla.dto.TicketChangesDto;
+import com.webdrone.assembla.dto.TicketChangesListDto;
 import com.webdrone.assembla.dto.TicketListAssemblaDto;
 import com.webdrone.model.Milestone;
 import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
 import com.webdrone.model.User;
 import com.webdrone.model.Workflow;
+import com.webdrone.model.WorkflowTransition;
+import com.webdrone.model.WorkflowTransitionInstance;
 import com.webdrone.service.MilestoneService;
 import com.webdrone.service.SpaceService;
 import com.webdrone.service.TicketService;
 import com.webdrone.service.UserService;
 import com.webdrone.service.WorkflowService;
+import com.webdrone.service.WorkflowTransitionInstanceService;
+import com.webdrone.service.WorkflowTransitionService;
+import com.webdrone.util.ExpressionLanguageResultEnum;
+import com.webdrone.util.ExpressionLanguageUtils;
 import com.webdrone.util.RESTServiceUtil;
 
 @Stateless
@@ -58,6 +74,8 @@ public class SyncUserDataThread implements Runnable {
 			TicketService ticketService = new TicketService();
 			MilestoneService milestoneService = new MilestoneService();
 			WorkflowService workflowService = new WorkflowService();
+			WorkflowTransitionService workflowTransitionService = new WorkflowTransitionService();
+			WorkflowTransitionInstanceService workflowTransitionInstanceService = new WorkflowTransitionInstanceService();
 
 			User currentUser = userService.findUserByUsername(entityManager, username);
 
@@ -70,7 +88,7 @@ public class SyncUserDataThread implements Runnable {
 
 				currentUser.setSyncStatus("Retrieving Spaces");
 				userService.threadUpdate(utx, entityManager, currentUser);
-				
+
 				for (SpaceAssemblaDto spaceAssemblaDto : spaceListAssemblaDto.getSpaceDtos()) {
 
 					Object resultSpace = spaceService.findByExternalRefId(entityManager, Space.class, spaceAssemblaDto.getId());
@@ -127,7 +145,7 @@ public class SyncUserDataThread implements Runnable {
 					}
 
 				}
-				
+
 				currentUser.setSyncStatus("Space sync done");
 
 				userService.threadUpdate(utx, entityManager, currentUser);
@@ -135,25 +153,26 @@ public class SyncUserDataThread implements Runnable {
 				System.out.println("DONE SPACE Sync");
 
 				System.out.println("START MILESTONE Sync");
-				
+
+				// refresh currentUser
+				// calling the threadUpdate again causes the user to space link to create again
 				currentUser = userService.findUserByUsername(entityManager, username);
-				
+
 				currentUser.setSyncStatus("Start milestones sync");
 				userService.threadUpdate(utx, entityManager, currentUser);
 				for (Space space : currentUser.getSpaces()) {
 					System.out.println("Starting MILESTONE Sync for SPACE " + space.getExternalRefId());
-					
+
 					currentUser.setSyncStatus("Syncing milestones from " + space.getWikiname());
 					userService.threadUpdate(utx, entityManager, currentUser);
-					
+
 					int milestonesPerPage = 100;
 					int milestonePage = 1;
 					Object milestoneObj = null;
 					String milestonesXml = "";
 
 					do {
-						milestonesXml = sendRequest(currentUser,
-								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/milestones.xml?per_page=" + milestonesPerPage + "&page=" + milestonePage, true,
+						milestonesXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/milestones.xml?per_page=" + milestonesPerPage + "&page=" + milestonePage, true,
 								"Bearer " + currentUser.getBearerToken());
 
 						milestoneObj = RESTServiceUtil.unmarshaller(MilestoneListAssemblaDto.class, milestonesXml);
@@ -233,8 +252,7 @@ public class SyncUserDataThread implements Runnable {
 						int page = 1;
 						int ticketListSize = 0;
 						do {
-							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page,
-									true, "Bearer " + currentUser.getBearerToken());
+							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + currentUser.getBearerToken());
 
 							Object ticketListObj = RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
 
@@ -276,6 +294,12 @@ public class SyncUserDataThread implements Runnable {
 
 									Workflow workflow = workflowService.getWorkflowByName(entityManager, ticketAssemblaDto.getCustomFields().getType());
 
+									if (workflow != null) {
+										space.setCanProcessTicketChanges(true);
+									} else {
+										space.setCanProcessTicketChanges(false);
+									}
+									spaceService.threadUpdate(utx, entityManager, space);
 									/*
 									 * START : TICKET SYNC
 									 */
@@ -325,11 +349,150 @@ public class SyncUserDataThread implements Runnable {
 				}
 
 				System.out.println("END TICKET Sync");
-				currentUser.setSyncStatus("Sync Done");
-				userService.threadUpdate(utx, entityManager, currentUser);
+
 			} else {
 				System.out.println("User is null");
 			}
+
+			// RETRIEVE TICKET COMMENTS
+
+			for (Space space : currentUser.getSpaces()) {
+
+				if (space.isCanProcessTicketChanges()) {
+					List<Ticket> ticketList = ticketService.getTicketsBySpace(entityManager, space.getExternalRefId(), -1, 0);
+					for (Ticket ticket : ticketList) {
+
+						currentUser.setSyncStatus("Processing ticket #" + ticket.getTicketNumber() + " from " + space.getWikiname());
+						userService.threadUpdate(utx, entityManager, currentUser);
+						try {
+
+							TicketChangesListDto ticketChangesList = new TicketChangesListDto();
+
+							String ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
+									"Bearer " + currentUser.getBearerToken());
+
+							ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
+
+							if (ticketChangesList != null) {
+
+								// Temporary Workflow Transition
+								WorkflowTransition wt = workflowTransitionService.listAll(entityManager, WorkflowTransition.class).get(0);
+
+								Map<String, String> fieldMap = new HashMap<String, String>();
+								fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+								fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+
+								// Reverse list because assembla returns the changes in reverse
+								List<TicketChangesDto> ticketChangesReversed = new ArrayList<TicketChangesDto>();
+								List<TicketChangesDto> newTicketChangesList = ticketChangesList.getTicketChanges();
+
+								for (int i = newTicketChangesList.size() - 1; i >= 0; i--) {
+									ticketChangesReversed.add(newTicketChangesList.get(i));
+								}
+								List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? ticket.getWorkflow().getWorkflowTransitions() : new ArrayList<WorkflowTransition>();
+								int currentWorkflow = 0;
+								for (TicketChangesDto ticketChanges : ticketChangesReversed) {
+									WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class, ticketChanges.getId());
+
+									if (wti == null) {
+										wti = new WorkflowTransitionInstance();
+									}
+
+									wti.setExternalRefId(ticketChanges.getId());
+									wti.setMessage(ticketChanges.getComment());
+									wti.setSpace(space);
+									wti.setTicket(ticket);
+									wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
+									wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
+
+									wti.setWorkflowTransition(wt);
+
+									if (ticketChanges.getTicketChanges().contains("- - ")) {
+										String[] fields = ticketChanges.getTicketChanges().replace("---\n", "").split("- - ");
+
+										StringBuilder originState = new StringBuilder();
+										StringBuilder targetState = new StringBuilder();
+
+										for (int i = 1; i < fields.length; i++) {
+											String[] fieldArray = fields[i].split("  - ");
+											String fieldName = fieldArray[0].replace("- - ", "").replace("\n", "");
+											String previousValue = fieldArray[1].replace("\n", "");
+											String newValue = fieldArray[2].replace("\n", "");
+
+											originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
+											targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
+
+											if (currentWorkflow < workflowTransitions.size() && workflowTransitions.size() > 0) {
+												if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+													SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+													previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime()) + "";
+												}
+
+												if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+													SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+													newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
+												}
+
+												fieldMap.put("new_update_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+
+												if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
+													fieldMap = new HashMap<String, String>();
+													currentWorkflow++;
+													if (currentWorkflow > workflowTransitions.size()) {
+														ticketChanges.setHasViolation(true);
+														ticketChanges.setViolationCode(workflowTransitions.get(currentWorkflow).getErrorCode());
+														ticketChanges.setViolationMessage(workflowTransitions.get(currentWorkflow).getErrorMessage());
+													}
+													fieldMap.put("old_" + fieldName, previousValue);
+													fieldMap.put("new_" + fieldName, newValue);
+												} else {
+													fieldMap.put("old_" + fieldName, previousValue);
+													fieldMap.put("new_" + fieldName, newValue);
+													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(currentWorkflow).getExpressionLanguage());
+													System.out.println("EVAL RESULT : " + evalResult);
+													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+														ticketChanges.setHasViolation(true);
+														ticketChanges.setViolationCode(workflowTransitions.get(currentWorkflow).getErrorCode());
+														ticketChanges.setViolationMessage(workflowTransitions.get(currentWorkflow).getErrorMessage());
+														fieldMap = new HashMap<String, String>();
+														currentWorkflow++;
+													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+														ticketChanges.setHasViolation(false);
+														fieldMap = new HashMap<String, String>();
+														currentWorkflow++;
+													} else {
+														ticketChanges.setHasViolation(false);
+													}
+												}
+											} else {
+												ticketChanges.setHasViolation(false);
+											}
+											wti.setOriginState(originState.toString());
+											wti.setTargetState(targetState.toString());
+										}
+									} else {
+										wti.setOriginState("Comment : ''");
+										wti.setTargetState("Comment : " + ticketChanges.getComment());
+									}
+
+									if (wti.getId() != null) {
+										workflowTransitionInstanceService.threadUpdate(utx, entityManager, wti);
+									} else {
+										workflowTransitionInstanceService.threadCreate(utx, entityManager, wti);
+									}
+								}
+
+							}
+
+						} catch (ParseException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+
+			currentUser.setSyncStatus("Sync Done");
+			userService.threadUpdate(utx, entityManager, currentUser);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
