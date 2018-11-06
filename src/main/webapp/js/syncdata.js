@@ -26,8 +26,6 @@ componentDidMount() {
   var x2js = new X2JS();
   var syncStatus = "";
 
-  var userData = localStorage.getItem("userData");
-  var userItem = JSON.parse(userData);
   var syncRequest = "<?xml version='1.0' encoding='UTF-8' standalone='yes'?>";
 
   window.setInterval(function() {
@@ -130,6 +128,7 @@ componentDidMount() {
 
 syncdata() {
 
+  console.log("Call sync data");
   var userData = localStorage.getItem("userData");
   var userItem = JSON.parse(userData);
 
@@ -174,24 +173,7 @@ syncdata() {
 
     return (
       <div>
-        <nav className="navbar navbar-expand-lg navbar-light bg-light">
-          <a className="navbar-brand" href="index.html">
-            Ticket Monitor
-          </a>
-          <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
-            <span className="navbar-toggler-icon" />
-          </button>
-          <div className="collapse navbar-collapse" id="navbarText">
-            <ul className="navbar-nav mr-auto" >
-              <li class="nav-item active">
-                <a class="nav-link"  onClick={this.syncdata}>Sync</a>
-              </li>
-            </ul>
-            <span className="navbar-text">
-              <a onClick={this.logout}>Logout</a>
-            </span>
-          </div>
-        </nav>
+        <NavBar />
         <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
           <h4 class="display-4">{this.state.syncStatus}</h4>
           <a id="btnSync" href="#" class="btn btn-primary my-2" onClick={this.syncdata} disabled={this.state.startSync}>Start Sync</a>

@@ -26,6 +26,7 @@ import com.webdrone.assembla.dto.TicketChangesDto;
 import com.webdrone.assembla.dto.TicketChangesListDto;
 import com.webdrone.assembla.dto.TicketListAssemblaDto;
 import com.webdrone.model.Milestone;
+import com.webdrone.model.Notification;
 import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
 import com.webdrone.model.User;
@@ -33,6 +34,7 @@ import com.webdrone.model.Workflow;
 import com.webdrone.model.WorkflowTransition;
 import com.webdrone.model.WorkflowTransitionInstance;
 import com.webdrone.service.MilestoneService;
+import com.webdrone.service.NotificationService;
 import com.webdrone.service.SpaceService;
 import com.webdrone.service.TicketService;
 import com.webdrone.service.UserService;
@@ -76,6 +78,7 @@ public class SyncUserDataThread implements Runnable {
 			WorkflowService workflowService = new WorkflowService();
 			WorkflowTransitionService workflowTransitionService = new WorkflowTransitionService();
 			WorkflowTransitionInstanceService workflowTransitionInstanceService = new WorkflowTransitionInstanceService();
+			NotificationService notificationService = new NotificationService();
 
 			User currentUser = userService.findUserByUsername(entityManager, username);
 
@@ -404,8 +407,7 @@ public class SyncUserDataThread implements Runnable {
 									wti.setTicket(ticket);
 									wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
 									wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
-
-									wti.setWorkflowTransition(wt);
+									wti.setWorkflowTransition(workflowTransitions.get(currentWorkflow));
 
 									if (ticketChanges.getTicketChanges().contains("- - ")) {
 										String[] fields = ticketChanges.getTicketChanges().replace("---\n", "").split("- - ");
@@ -454,6 +456,7 @@ public class SyncUserDataThread implements Runnable {
 														ticketChanges.setHasViolation(true);
 														ticketChanges.setViolationCode(workflowTransitions.get(currentWorkflow).getErrorCode());
 														ticketChanges.setViolationMessage(workflowTransitions.get(currentWorkflow).getErrorMessage());
+
 														fieldMap = new HashMap<String, String>();
 														currentWorkflow++;
 													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
@@ -477,6 +480,13 @@ public class SyncUserDataThread implements Runnable {
 
 									if (wti.getId() != null) {
 										workflowTransitionInstanceService.threadUpdate(utx, entityManager, wti);
+
+										if (wti.isHasViolation()) {
+											Notification notification = new Notification();
+											notification.setWorkflowTransitionInstance(wti);
+											notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
+											notificationService.threadCreate(utx, entityManager, notification);
+										}
 									} else {
 										workflowTransitionInstanceService.threadCreate(utx, entityManager, wti);
 									}
@@ -491,7 +501,7 @@ public class SyncUserDataThread implements Runnable {
 				}
 			}
 
-			currentUser.setSyncStatus("Sync Done");
+			currentUser.setSyncStatus("Ready to start");
 			userService.threadUpdate(utx, entityManager, currentUser);
 		} catch (Exception e) {
 			e.printStackTrace();

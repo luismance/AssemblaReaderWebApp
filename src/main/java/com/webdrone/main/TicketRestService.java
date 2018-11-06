@@ -1,12 +1,7 @@
 package com.webdrone.main;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -19,7 +14,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.hibernate.cfg.Environment;
 import org.joda.time.DateTime;
 
 import com.webdrone.assembla.dto.SpaceTicketChangesCountDto;
@@ -31,15 +25,11 @@ import com.webdrone.assembla.dto.TicketListAssemblaDto;
 import com.webdrone.job.TicketJobService;
 import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
-import com.webdrone.model.WorkflowTransition;
 import com.webdrone.model.WorkflowTransitionInstance;
 import com.webdrone.service.SpaceService;
 import com.webdrone.service.TicketService;
 import com.webdrone.service.UserService;
 import com.webdrone.service.WorkflowTransitionInstanceService;
-import com.webdrone.service.WorkflowTransitionService;
-import com.webdrone.util.ExpressionLanguageResultEnum;
-import com.webdrone.util.ExpressionLanguageUtils;
 import com.webdrone.util.RESTServiceUtil;
 import com.webdrone.util.UserAuthResult;
 
@@ -56,9 +46,6 @@ public class TicketRestService {
 
 	@Inject
 	private TicketService ticketService;
-
-	@Inject
-	private WorkflowTransitionService workflowTransitionService;
 
 	@Inject
 	private WorkflowTransitionInstanceService workflowTranstionInstanceService;
@@ -227,12 +214,6 @@ public class TicketRestService {
 			}
 
 			if (ticketChangesList != null) {
-				Ticket ticket = ticketService.getTicketBySpaceAndNumber(space.getId(), ticketNumber);
-
-				Map<String, String> fieldMap = new HashMap<String, String>();
-				fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-				fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-
 				// Reverse list because assembla returns the changes in reverse
 				List<TicketChangesDto> ticketChangesReversed = new ArrayList<TicketChangesDto>();
 				List<TicketChangesDto> newTicketChangesList = ticketChangesList.getTicketChanges();

@@ -26,14 +26,15 @@ class TicketItem extends React.Component {
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
       },
       dataType: "text",
+      success: function(data) {
+        var ticketChangesJson = x2js.xml_str2json(data);
+        const ticketChanges = ticketChangesJson["ticket-comments"]["ticket-comment"];
+        if (ticketChanges || ticketChanges != null) {
+          thisComp.setState({ ticketChanges });
+        }
+      },
       error: function(data) {
         console.log("Error : " + JSON.stringify(data));
-      }
-    }).done(function(data) {
-      var ticketChangesJson = x2js.xml_str2json(data);
-      const ticketChanges = ticketChangesJson["ticket-comments"]["ticket-comment"];
-      if (ticketChanges || ticketChanges != null) {
-        thisComp.setState({ ticketChanges });
       }
     });
   }
@@ -146,6 +147,7 @@ class SpaceList extends React.Component {
     this.state = {
       spaces: [],
       tickets: [],
+      notifications : [],
       currentSpaceId: 0
     };
 
@@ -173,20 +175,39 @@ class SpaceList extends React.Component {
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
       },
       dataType: "text",
+      success : function(data) {
+        var spacesJson = x2js.xml_str2json(data);
+        const spaces = spacesJson.spaces.space.map(obj => obj);
+        thisComp.setState({ spaces });
+
+        var currentSpaceId = getURLParameter("space_id");
+        if (!currentSpaceId) {
+          var currentSpaceId = thisComp.state.spaces[0].id;
+        }
+        thisComp.setState({ currentSpaceId });
+        thisComp.updateTickets();
+      },
       error: function(data) {
         console.log("Error : " + JSON.stringify(data));
       }
-    }).done(function(data) {
-      var spacesJson = x2js.xml_str2json(data);
-      const spaces = spacesJson.spaces.space.map(obj => obj);
-      thisComp.setState({ spaces });
+    });
 
-      var currentSpaceId = getURLParameter("space_id");
-      if (!currentSpaceId) {
-        var currentSpaceId = thisComp.state.spaces[0].id;
+    $.ajax({
+      type: "GET",
+      url: "rest/notification/list",
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      dataType: "text",
+      success : function(data) {
+        var notificationJson = x2js.xml_str2json(data);
+        const notifications = notificationJson.notifications.notification.map(obj => obj);
+        thisComp.setState({ notifications });
+      },
+      error: function(data) {
+        console.log("Error : " + JSON.stringify(data));
       }
-      thisComp.setState({ currentSpaceId });
-      thisComp.updateTickets();
     });
   }
 
@@ -270,10 +291,19 @@ class SpaceList extends React.Component {
   render() {
     var spaceList = this.state.spaces.map((space, i) => (
       <li className="nav-item " key={space.id}>
-        <a href={"/assemblareader/index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? "active" : "")}>
+        <a href={"index.html?space_id=" + space.id} className={"nav-link " + (this.state.currentSpaceId === space.id ? "active" : "")}>
           {space.name}
         </a>
       </li>
+    ));
+
+    var notificationList = this.state.notifications.map((notification, i) =>(
+      <div class="card" style={{ marginTop: "10px", marginRight : "10px"}}>
+        <div class="card-body">
+          <h6 class="card-title">{notification.header}</h6>
+          <small><p class="card-text">{notification.message}</p></small>
+        </div>
+      </div>
     ));
 
     var curPage = Number(localStorage.getItem("curPage"));
@@ -292,7 +322,7 @@ class SpaceList extends React.Component {
 
     var firstPage = (
       <li className="page-item">
-        <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationFirst}>
+        <a className="page-link" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationFirst}>
           {paginationFirst}
         </a>
       </li>
@@ -302,7 +332,7 @@ class SpaceList extends React.Component {
         ""
       ) : (
         <li className="page-item">
-          <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationSecond}>
+          <a className="page-link" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationSecond}>
             {paginationSecond}
           </a>
         </li>
@@ -312,7 +342,7 @@ class SpaceList extends React.Component {
         ""
       ) : (
         <li className="page-item" className="hidden">
-          <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationThird}>
+          <a className="page-link" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + paginationThird}>
             {paginationThird}
           </a>
         </li>
@@ -333,13 +363,13 @@ class SpaceList extends React.Component {
             Tickets per page
           </button>
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
+            <a className="dropdown-item" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=10"}>
               10
             </a>
-            <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
+            <a className="dropdown-item" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=15"}>
               15
             </a>
-            <a className="dropdown-item" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
+            <a className="dropdown-item" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=20"}>
               20
             </a>
           </div>
@@ -352,7 +382,7 @@ class SpaceList extends React.Component {
         <nav aria-label="Page navigation" style={{ marginLeft: "10px" }}>
           <ul className="pagination">
             <li className="page-item">
-              <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
+              <a className="page-link" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + previousPage} aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
                 <span className="sr-only">Previous</span>
               </a>
@@ -361,7 +391,7 @@ class SpaceList extends React.Component {
             {secondPage}
             {thirdPage}
             <li className="page-item">
-              <a className="page-link" href={"/assemblareader/index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
+              <a className="page-link" href={"index.html?space_id=" + this.state.currentSpaceId + "&per_page=" + perPage + "&cur_page=" + nextPage} aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
                 <span className="sr-only">Next</span>
               </a>
@@ -373,30 +403,27 @@ class SpaceList extends React.Component {
 
     return (
       <div>
-        <nav className="navbar navbar-expand-lg navbar-light bg-light">
-          <a className="navbar-brand" href="index.html">
-            Ticket Monitor
-          </a>
-          <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
-            <span className="navbar-toggler-icon" />
-          </button>
-          <div className="collapse navbar-collapse" id="navbarText">
-            <ul className="navbar-nav mr-auto" >
-              <li class="nav-item active">
-                <a class="nav-link" href="syncdata.html">Sync</a>
-              </li>
-            </ul>
-            <span className="navbar-text">
-              <a onClick={this.logout}>Logout</a>
-            </span>
-          </div>
-        </nav>
+        <NavBar />
         <div>
-          <div>
-            <ul className="nav nav-tabs">{spaceList}</ul>
-          </div>
-          <div className="panel-group">
-          {this.state.tickets.length === 0 ? noAccess : ticketDisplay}
+          <div class="row">
+            <div class="col-md-8">
+              <div>
+                <div>
+                  <ul className="nav nav-tabs">{spaceList}</ul>
+                </div>
+                <div className="panel-group">
+                  {this.state.tickets.length === 0 ? noAccess : ticketDisplay}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <ul className="nav nav-tabs">
+                <li className="nav-item"><a className="nav-link active"><h6>Notifications</h6></a></li>
+              </ul>
+              <div>
+                {notificationList}
+              </div>
+            </div>
           </div>
         </div>
       </div>

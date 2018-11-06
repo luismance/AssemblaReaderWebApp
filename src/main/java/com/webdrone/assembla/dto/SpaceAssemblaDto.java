@@ -1,7 +1,6 @@
 package com.webdrone.assembla.dto;
 
 import java.math.BigDecimal;
-import java.util.Date;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
