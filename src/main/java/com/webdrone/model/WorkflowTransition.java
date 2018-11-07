@@ -13,6 +13,10 @@ public class WorkflowTransition extends BaseModel {
 
 	private static final long serialVersionUID = 1L;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "WORKFLOW_ID")
+	private Workflow workflow;
+
 	@Column(name = "EXPRESSION_LANGUAGE", columnDefinition = "TEXT", nullable = false)
 	private String expressionLanguage;
 
@@ -22,12 +26,16 @@ public class WorkflowTransition extends BaseModel {
 	@Column(name = "ERROR_MESSAGE", length = 255, nullable = false)
 	private String errorMessage;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "WORKFLOW_ID")
-	private Workflow workflow;
-
 	public WorkflowTransition() {
 		super();
+	}
+
+	public Workflow getWorkflow() {
+		return workflow;
+	}
+
+	public void setWorkflow(Workflow workflow) {
+		this.workflow = workflow;
 	}
 
 	public String getExpressionLanguage() {
@@ -52,14 +60,6 @@ public class WorkflowTransition extends BaseModel {
 
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
-	}
-
-	public Workflow getWorkflow() {
-		return workflow;
-	}
-
-	public void setWorkflow(Workflow workflow) {
-		this.workflow = workflow;
 	}
 
 }

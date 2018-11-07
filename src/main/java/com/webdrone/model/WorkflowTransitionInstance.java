@@ -32,8 +32,8 @@ public class WorkflowTransitionInstance extends RemoteEntity {
 	@Column(name = "TARGET_STATE", columnDefinition = "TEXT")
 	private String targetState;
 
-	@ManyToOne(optional = false)
-	@JoinColumn(name = "WORKFLOW_TRANSITION_ID", nullable = false)
+	@ManyToOne(optional = true)
+	@JoinColumn(name = "WORKFLOW_TRANSITION_ID", nullable = true)
 	private WorkflowTransition workflowTransition;
 
 	public WorkflowTransitionInstance() {

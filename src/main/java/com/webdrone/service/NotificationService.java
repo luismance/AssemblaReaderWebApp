@@ -1,5 +1,6 @@
 package com.webdrone.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,16 +20,21 @@ public class NotificationService extends BaseService<Notification> {
 
 	public List<Notification> getNotifications(EntityManager em, Set<Space> spaces) {
 
-		StringBuilder spaceIds = new StringBuilder();
-		for (Space space : spaces) {
-			if (spaceIds.length() > 0) {
-				spaceIds.append(",");
+		if (spaces.size() > 0) {
+			StringBuilder spaceIds = new StringBuilder();
+			for (Space space : spaces) {
+				if (spaceIds.length() > 0) {
+					spaceIds.append(",");
+				}
+				spaceIds.append("'").append(space.getExternalRefId()).append("'");
 			}
-			spaceIds.append("'").append(space.getExternalRefId()).append("'");
-		}
-		TypedQuery<Notification> query = em.createQuery("SELECT n FROM " + Notification.class.getSimpleName() + " n WHERE n.workflowTransitionInstance.ticket.space.externalRefId IN (" + spaceIds.toString() + ") ORDER BY n.dateCreated DESC", Notification.class);
+			TypedQuery<Notification> query = em.createQuery("SELECT n FROM " + Notification.class.getSimpleName() + " n WHERE n.workflowTransitionInstance.ticket.space.externalRefId IN ("
+					+ spaceIds.toString() + ") ORDER BY n.dateCreated DESC", Notification.class);
 
-		List<Notification> resultList = query.getResultList();
-		return resultList;
+			List<Notification> resultList = query.getResultList();
+			return resultList;
+		}
+
+		return new ArrayList<Notification>();
 	}
 }
