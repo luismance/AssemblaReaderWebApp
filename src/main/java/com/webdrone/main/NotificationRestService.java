@@ -9,9 +9,11 @@ import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.webdrone.assembla.dto.NotificationCountDto;
 import com.webdrone.assembla.dto.NotificationDto;
 import com.webdrone.assembla.dto.NotificationListDto;
 import com.webdrone.model.Notification;
@@ -32,7 +34,7 @@ public class NotificationRestService {
 
 	@GET
 	@Path("/list")
-	public Response getNotifications(@HeaderParam("Authorization") String authorization) {
+	public Response getNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("per_page") int notifsPerPage, @QueryParam("page") int page) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -40,7 +42,7 @@ public class NotificationRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces());
+		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), page - 1, notifsPerPage);
 
 		List<NotificationDto> notificationsDto = new ArrayList<NotificationDto>();
 
@@ -55,6 +57,22 @@ public class NotificationRestService {
 		NotificationListDto notificationListDto = new NotificationListDto();
 		notificationListDto.setNotificationListDto(notificationsDto);
 		return Response.status(200).entity(notificationListDto).build();
+
+	}
+
+	@GET
+	@Path("/count")
+	public Response getNotificationTotalCount(@HeaderParam("Authorization") String authorization) {
+
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		NotificationCountDto notificationCountDto = new NotificationCountDto();
+		notificationCountDto.setNotificationCount(notificationService.getNotificationCount(valResult.getUser().getSpaces()));
+		return Response.status(200).entity(notificationCountDto).build();
 
 	}
 }

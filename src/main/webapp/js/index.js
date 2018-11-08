@@ -147,11 +147,12 @@ class SpaceList extends React.Component {
     this.state = {
       spaces: [],
       tickets: [],
-      notifications : [],
       currentSpaceId: 0
     };
 
+    this.componentDidMount = this.componentDidMount.bind(this);
     this.updateTickets = this.updateTickets.bind(this);
+
   }
 
   componentDidMount() {
@@ -176,34 +177,17 @@ class SpaceList extends React.Component {
       },
       dataType: "text",
       success : function(data) {
+
         var spacesJson = x2js.xml_str2json(data);
         const spaces = spacesJson.spaces.space.map(obj => obj);
         thisComp.setState({ spaces });
 
         var currentSpaceId = getURLParameter("space_id");
         if (!currentSpaceId) {
-          var currentSpaceId = thisComp.state.spaces[0].id;
+          currentSpaceId = spaces[0].id;
         }
         thisComp.setState({ currentSpaceId });
         thisComp.updateTickets();
-      },
-      error: function(data) {
-        console.log("Error : " + JSON.stringify(data));
-      }
-    });
-
-    $.ajax({
-      type: "GET",
-      url: "rest/notification/list",
-      headers: {
-        "Content-Type": "application/xml",
-        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
-      },
-      dataType: "text",
-      success : function(data) {
-        var notificationJson = x2js.xml_str2json(data);
-        const notifications = notificationJson.notifications.notification.map(obj => obj);
-        thisComp.setState({ notifications });
       },
       error: function(data) {
         console.log("Error : " + JSON.stringify(data));
@@ -297,15 +281,6 @@ class SpaceList extends React.Component {
       </li>
     ));
 
-    var notificationList = this.state.notifications.map((notification, i) =>(
-      <div class="card" style={{ marginTop: "10px", marginRight : "10px"}}>
-        <div class="card-body">
-          <h6 class="card-title">{notification.header}</h6>
-          <small><p class="card-text">{notification.message}</p></small>
-        </div>
-      </div>
-    ));
-
     var curPage = Number(localStorage.getItem("curPage"));
     var perPage = Number(localStorage.getItem("itemPerPage"));
     var totalTicketCount = Number(localStorage.getItem("totalTicketCount"));
@@ -352,6 +327,14 @@ class SpaceList extends React.Component {
       <div id="noAccess"class="panel panel-danger" style={{ margin : "10px"}}>
         <a class="list-group-item" data-toggle="collapse">
           <div class="panel-heading">Cannot access tickets!</div>
+        </a>
+      </div>
+    );
+
+    var noSpacesMessage = (
+      <div id="noAccess"class="panel panel-danger" style={{ margin : "10px"}}>
+        <a class="list-group-item" data-toggle="collapse">
+          <div class="panel-heading">Cannot access spaces!</div>
         </a>
       </div>
     );
@@ -412,18 +395,11 @@ class SpaceList extends React.Component {
                   <ul className="nav nav-tabs">{spaceList}</ul>
                 </div>
                 <div className="panel-group">
-                  {this.state.tickets.length === 0 ? noAccess : ticketDisplay}
+                  {this.state.spaces.length === 0 ? noSpacesMessage : (this.state.tickets.length === 0 ? noAccess : ticketDisplay)}
                 </div>
               </div>
             </div>
-            <div class="col-md-4">
-              <ul className="nav nav-tabs">
-                <li className="nav-item"><a className="nav-link active"><h6>Notifications</h6></a></li>
-              </ul>
-              <div>
-                {notificationList}
-              </div>
-            </div>
+            <NotificationList />
           </div>
         </div>
       </div>

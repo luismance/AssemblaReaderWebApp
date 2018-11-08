@@ -1,6 +1,5 @@
 package com.webdrone.thread;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -175,8 +174,7 @@ public class SyncUserDataThread implements Runnable {
 					String milestonesXml = "";
 
 					do {
-						milestonesXml = sendRequest(currentUser,
-								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/milestones.xml?per_page=" + milestonesPerPage + "&page=" + milestonePage, true,
+						milestonesXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/milestones.xml?per_page=" + milestonesPerPage + "&page=" + milestonePage, true,
 								"Bearer " + currentUser.getBearerToken());
 
 						milestoneObj = RESTServiceUtil.unmarshaller(MilestoneListAssemblaDto.class, milestonesXml);
@@ -256,8 +254,7 @@ public class SyncUserDataThread implements Runnable {
 						int page = 1;
 						int ticketListSize = 0;
 						do {
-							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page,
-									true, "Bearer " + currentUser.getBearerToken());
+							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page, true, "Bearer " + currentUser.getBearerToken());
 
 							Object ticketListObj = RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
 
@@ -372,8 +369,7 @@ public class SyncUserDataThread implements Runnable {
 
 						TicketChangesListDto ticketChangesList = new TicketChangesListDto();
 
-						String ticketChangesXml = RESTServiceUtil.sendGET(
-								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
+						String ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
 								"Bearer " + currentUser.getBearerToken());
 
 						ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
@@ -412,8 +408,7 @@ public class SyncUserDataThread implements Runnable {
 										originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
 										targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
 
-										WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager,
-												WorkflowTransitionInstance.class, ticketChanges.getId());
+										WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class, ticketChanges.getId());
 
 										if (wti == null) {
 											wti = new WorkflowTransitionInstance();
@@ -455,8 +450,7 @@ public class SyncUserDataThread implements Runnable {
 												} else {
 													fieldMap.put("old_" + fieldName, previousValue);
 													fieldMap.put("new_" + fieldName, newValue);
-													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap,
-															workflowTransitions.get(currentWorkflow).getExpressionLanguage());
+													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(currentWorkflow).getExpressionLanguage());
 													System.out.println("EVAL RESULT : " + evalResult);
 													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
 														wti.setHasViolation(true);
@@ -492,8 +486,7 @@ public class SyncUserDataThread implements Runnable {
 									}
 								} else {
 
-									WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class,
-											ticketChanges.getId());
+									WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class, ticketChanges.getId());
 
 									if (wti == null) {
 										wti = new WorkflowTransitionInstance();
@@ -539,6 +532,13 @@ public class SyncUserDataThread implements Runnable {
 			currentUser.setSyncStatus("Ready to start");
 			userService.threadUpdate(utx, entityManager, currentUser);
 		} catch (Exception e) {
+			User currentUser = userService.findUserByUsername(entityManager, username);
+			currentUser.setSyncStatus("An error occured while trying to sync");
+			try {
+				userService.threadUpdate(utx, entityManager, currentUser);
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
 			e.printStackTrace();
 		}
 
