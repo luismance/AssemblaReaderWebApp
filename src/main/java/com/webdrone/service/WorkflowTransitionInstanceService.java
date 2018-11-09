@@ -22,7 +22,7 @@ public class WorkflowTransitionInstanceService extends BaseService<WorkflowTrans
 
 		return query.getResultList();
 	}
-
+	
 	public long getTicketChangesCountBySpace(String spaceId) {
 
 		return Long.parseLong(getEntityManager().createQuery("SELECT COUNT(wti.id) FROM " + WorkflowTransitionInstance.class.getSimpleName() + " wti WHERE wti.space.externalRefId = '" + spaceId + "'").getSingleResult().toString());

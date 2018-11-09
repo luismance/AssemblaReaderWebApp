@@ -1,5 +1,6 @@
 package com.webdrone.model;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
@@ -19,10 +20,13 @@ public class Notification extends BaseModel {
 	@JoinColumn(name = "WORKFLOW_TRANSITION_VIOLATED_ID", nullable = false)
 	private WorkflowTransition workflowTransitionViolated;
 
-	public Notification(){
+	@Column(name = "MESSAGE", columnDefinition = "TEXT")
+	private String message;
+
+	public Notification() {
 		super();
 	}
-	
+
 	public WorkflowTransitionInstance getWorkflowTransitionInstance() {
 		return workflowTransitionInstance;
 	}
@@ -37,6 +41,14 @@ public class Notification extends BaseModel {
 
 	public void setWorkflowTransitionViolated(WorkflowTransition workflowTransitionViolated) {
 		this.workflowTransitionViolated = workflowTransitionViolated;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public void setMessage(String message) {
+		this.message = message;
 	}
 
 }

@@ -376,13 +376,6 @@ public class SyncUserDataThread implements Runnable {
 
 						if (ticketChangesList != null) {
 
-							// Temporary Workflow Transition
-							WorkflowTransition wt = workflowTransitionService.listAll(entityManager, WorkflowTransition.class).get(0);
-
-							Map<String, String> fieldMap = new HashMap<String, String>();
-							fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-							fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-
 							// Reverse list because assembla returns the changes in reverse
 							List<TicketChangesDto> ticketChangesReversed = new ArrayList<TicketChangesDto>();
 							List<TicketChangesDto> newTicketChangesList = ticketChangesList.getTicketChanges();
@@ -390,8 +383,13 @@ public class SyncUserDataThread implements Runnable {
 							for (int i = newTicketChangesList.size() - 1; i >= 0; i--) {
 								ticketChangesReversed.add(newTicketChangesList.get(i));
 							}
-							List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? ticket.getWorkflow().getWorkflowTransitions() : new ArrayList<WorkflowTransition>();
-							int currentWorkflow = 0;
+							List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? workflowTransitionService.getStartingWorkflowTransitions(entityManager, ticket.getWorkflow()) : new ArrayList<WorkflowTransition>();
+
+							Map<String, String> fieldMap = new HashMap<String, String>();
+							fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+							fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+
+							int currentWorkflowIndex = 0;
 							for (TicketChangesDto ticketChanges : ticketChangesReversed) {
 								if (ticketChanges.getTicketChanges().contains("- - ")) {
 									String[] fields = ticketChanges.getTicketChanges().replace("---\n", "").split("- - ");
@@ -420,10 +418,14 @@ public class SyncUserDataThread implements Runnable {
 										wti.setTicket(ticket);
 										wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
 										wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
-										if (workflowTransitions.size() > 0) {
-											if (currentWorkflow < workflowTransitions.size() && workflowTransitions.size() > 0) {
 
-												wti.setWorkflowTransition(workflowTransitions.get(currentWorkflow));
+										String notifMessage = "";
+										if (workflowTransitions.size() > 0) {
+
+											for (int wtIndex = 0; i < workflowTransitions.size(); i++) {
+												WorkflowTransition wt = workflowTransitions.get(wtIndex);
+												currentWorkflowIndex = wtIndex;
+												wti.setWorkflowTransition(wt);
 
 												/* DATE VALUE PROCESSING START */
 												if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
@@ -440,34 +442,40 @@ public class SyncUserDataThread implements Runnable {
 												/* DATE VALUE PROCESSING START */
 
 												if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
-													fieldMap = new HashMap<String, String>();
-													currentWorkflow++;
-													if (currentWorkflow > workflowTransitions.size()) {
+													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
+													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
 														wti.setHasViolation(true);
+														fieldMap = new HashMap<String, String>();
+														workflowTransitions = wt.getWorkflowTransitions();
+														wtIndex = 0;
+														if (workflowTransitions.size() == 0) {
+															break;
+														}
+													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+														wti.setHasViolation(false);
+														fieldMap = new HashMap<String, String>();
+														workflowTransitions = wt.getWorkflowTransitions();
+														wtIndex = 0;
+														if (workflowTransitions.size() == 0) {
+															break;
+														}
+													} else {
+														wti.setHasViolation(true);
+														notifMessage = "A property was not set or a step was skipped!";
+														break;
 													}
-													fieldMap.put("old_" + fieldName, previousValue);
-													fieldMap.put("new_" + fieldName, newValue);
+													fieldMap = new HashMap<String, String>();
 												} else {
 													fieldMap.put("old_" + fieldName, previousValue);
 													fieldMap.put("new_" + fieldName, newValue);
-													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(currentWorkflow).getExpressionLanguage());
-													System.out.println("EVAL RESULT : " + evalResult);
-													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
-														wti.setHasViolation(true);
-														fieldMap = new HashMap<String, String>();
-														currentWorkflow++;
-													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
-														wti.setHasViolation(false);
-														fieldMap = new HashMap<String, String>();
-														currentWorkflow++;
-													} else {
-														wti.setHasViolation(false);
-													}
 												}
-											} else {
-												wti.setHasViolation(false);
 											}
+										} else {
+											wti.setHasViolation(false);
 										}
+
 										wti.setOriginState(originState.toString());
 										wti.setTargetState(targetState.toString());
 
@@ -478,6 +486,7 @@ public class SyncUserDataThread implements Runnable {
 
 											if (wti.isHasViolation()) {
 												Notification notification = new Notification();
+												notification.setMessage(notifMessage);
 												notification.setWorkflowTransitionInstance(wti);
 												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
 												notificationService.threadCreate(utx, entityManager, notification);
@@ -498,10 +507,8 @@ public class SyncUserDataThread implements Runnable {
 									wti.setTicket(ticket);
 									wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
 									wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
-									if (workflowTransitions.size() > 0) {
-										if (currentWorkflow < workflowTransitions.size() && workflowTransitions.size() > 0) {
-											wti.setWorkflowTransition(workflowTransitions.get(currentWorkflow));
-										}
+									if (workflowTransitions.size() > 0 && currentWorkflowIndex < workflowTransitions.size()) {
+										wti.setWorkflowTransition(workflowTransitions.get(currentWorkflowIndex));
 									}
 									wti.setOriginState("comment : ''");
 									wti.setTargetState("comment : " + ticketChanges.getComment());

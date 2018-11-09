@@ -50,7 +50,7 @@ public class NotificationRestService {
 			NotificationDto ndto = new NotificationDto();
 			ndto.setId(notification.getId() + "");
 			ndto.setNotificationHeader("Ticket #" + notification.getWorkflowTransitionInstance().getTicket().getTicketNumber());
-			ndto.setNotificationMessage(notification.getWorkflowTransitionViolated().getErrorMessage());
+			ndto.setNotificationMessage(notification.getMessage().isEmpty() ? notification.getWorkflowTransitionViolated().getErrorMessage() : notification.getMessage());
 			notificationsDto.add(ndto);
 		}
 

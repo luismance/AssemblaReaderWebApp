@@ -1,10 +1,14 @@
 package com.webdrone.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
@@ -25,6 +29,12 @@ public class WorkflowTransition extends BaseModel {
 
 	@Column(name = "ERROR_MESSAGE", length = 255, nullable = false)
 	private String errorMessage;
+
+	@OneToMany(fetch = FetchType.EAGER)
+	private List<WorkflowTransition> workflowTransitions = new ArrayList<WorkflowTransition>();
+
+	@Column(name = "IS_START")
+	private boolean isFirstStep = false;
 
 	public WorkflowTransition() {
 		super();
@@ -60,6 +70,22 @@ public class WorkflowTransition extends BaseModel {
 
 	public void setErrorMessage(String errorMessage) {
 		this.errorMessage = errorMessage;
+	}
+
+	public List<WorkflowTransition> getWorkflowTransitions() {
+		return workflowTransitions;
+	}
+
+	public void setWorkflowTransitions(List<WorkflowTransition> workflowTransitions) {
+		this.workflowTransitions = workflowTransitions;
+	}
+
+	public boolean isFirstStep() {
+		return isFirstStep;
+	}
+
+	public void setFirstStep(boolean isFirstStep) {
+		this.isFirstStep = isFirstStep;
 	}
 
 }
