@@ -438,7 +438,7 @@ public class SyncUserDataThread implements Runnable {
 													newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
 												}
 
-												fieldMap.put("new_update_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+												fieldMap.put("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
 												/* DATE VALUE PROCESSING START */
 
 												if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
@@ -462,6 +462,7 @@ public class SyncUserDataThread implements Runnable {
 															break;
 														}
 													} else {
+														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
 														wti.setHasViolation(true);
 														notifMessage = "A property was not set or a step was skipped!";
 														break;

@@ -16,6 +16,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.webdrone.service.UserService;
+import com.webdrone.thread.ProcessTicketChanges;
 import com.webdrone.thread.SyncUserDataThread;
 import com.webdrone.util.UserAuthResult;
 
@@ -47,6 +48,23 @@ public class SyncRestService {
 
 		SyncUserDataThread sudt = new SyncUserDataThread(utx, emf.createEntityManager(), valResult.getUser().getUsername());
 		Thread thread = threadFactory.newThread(sudt);
+		thread.start();
+
+		return Response.status(200).entity("SUCCESS").build();
+
+	}
+	
+	@POST
+	@Path("/processTicketChanges")
+	public Response processTicketChanges(@HeaderParam("Authorization") String authorization, String requestBody) {
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		ProcessTicketChanges ptc = new ProcessTicketChanges(utx, emf.createEntityManager(), valResult.getUser().getUsername());
+		Thread thread = threadFactory.newThread(ptc);
 		thread.start();
 
 		return Response.status(200).entity("SUCCESS").build();
