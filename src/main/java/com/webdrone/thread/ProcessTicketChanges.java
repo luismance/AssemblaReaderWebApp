@@ -72,7 +72,7 @@ public class ProcessTicketChanges implements Runnable {
 			for (Space space : currentUser.getSpaces()) {
 
 				if (space.isCanProcessTicketChanges()) {
-					List<Ticket> ticketList = ticketService.getTicketsBySpace(entityManager, space.getExternalRefId(), -1, 0);
+					List<Ticket> ticketList = ticketService.getTicketsBySpace(entityManager, space.getExternalRefId(), -1, 0, "", "", "");
 					for (Ticket ticket : ticketList) {
 
 						currentUser.setSyncStatus("Processing ticket #" + ticket.getTicketNumber() + " from " + space.getWikiname());
@@ -80,7 +80,8 @@ public class ProcessTicketChanges implements Runnable {
 
 						TicketChangesListDto ticketChangesList = new TicketChangesListDto();
 
-						String ticketChangesXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
+						String ticketChangesXml = sendRequest(currentUser,
+								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
 								"Bearer " + currentUser.getBearerToken());
 
 						ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
@@ -94,7 +95,8 @@ public class ProcessTicketChanges implements Runnable {
 							for (int i = newTicketChangesList.size() - 1; i >= 0; i--) {
 								ticketChangesReversed.add(newTicketChangesList.get(i));
 							}
-							List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? workflowTransitionService.getStartingWorkflowTransitions(entityManager, ticket.getWorkflow()) : new ArrayList<WorkflowTransition>();
+							List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? workflowTransitionService.getStartingWorkflowTransitions(entityManager, ticket.getWorkflow())
+									: new ArrayList<WorkflowTransition>();
 
 							Map<String, String> fieldMap = new HashMap<String, String>();
 							fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
@@ -108,6 +110,7 @@ public class ProcessTicketChanges implements Runnable {
 									StringBuilder originState = new StringBuilder();
 									StringBuilder targetState = new StringBuilder();
 
+									System.out.println("Processing " + ticket.getTicketNumber());
 									for (int i = 1; i < fields.length; i++) {
 										String[] fieldArray = fields[i].split("  - ");
 										String fieldName = fieldArray[0].replace("- - ", "").replace("\n", "");
@@ -117,7 +120,8 @@ public class ProcessTicketChanges implements Runnable {
 										originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
 										targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
 
-										WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class, ticketChanges.getId());
+										WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager,
+												WorkflowTransitionInstance.class, ticketChanges.getId());
 
 										if (wti == null) {
 											wti = new WorkflowTransitionInstance();
@@ -132,59 +136,69 @@ public class ProcessTicketChanges implements Runnable {
 
 										String notifMessage = "";
 										if (workflowTransitions.size() > 0) {
+											System.out.println("Workflow Transitions Size : " + workflowTransitions.size());
 
-											for (int wtIndex = 0; i < workflowTransitions.size(); i++) {
-												WorkflowTransition wt = workflowTransitions.get(wtIndex);
-												currentWorkflowIndex = wtIndex;
-												wti.setWorkflowTransition(wt);
+											WorkflowTransition wt = workflowTransitions.get(0);
+											currentWorkflowIndex = 0;
+											wti.setWorkflowTransition(wt);
 
-												/* DATE VALUE PROCESSING START */
-												if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
-													SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-													previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime()) + "";
-												}
+											/* DATE VALUE PROCESSING START */
+											if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+												SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+												previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime()) + "";
+											}
 
-												if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
-													SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-													newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
-												}
+											if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+												SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+												newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
+											}
 
+											if (fieldMap.containsKey("new_updated_at")) {
+												fieldMap.replace("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+											} else {
 												fieldMap.put("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
-												/* DATE VALUE PROCESSING START */
+											}
 
-												if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
-													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
-													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(true);
-														fieldMap = new HashMap<String, String>();
-														workflowTransitions = wt.getWorkflowTransitions();
-														wtIndex = 0;
-														if (workflowTransitions.size() == 0) {
-															break;
-														}
-													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(false);
-														fieldMap = new HashMap<String, String>();
-														workflowTransitions = wt.getWorkflowTransitions();
-														wtIndex = 0;
-														if (workflowTransitions.size() == 0) {
-															break;
-														}
-													} else {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(true);
-														notifMessage = "A property was not set or a step was skipped!";
+											/* DATE VALUE PROCESSING START */
+
+											if (fieldMap.containsKey("old_" + fieldName) && fieldMap.containsKey("new_" + fieldName)) {
+
+												ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
+												if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+													System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+													wti.setHasViolation(true);
+													fieldMap = new HashMap<String, String>();
+													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+													workflowTransitions = wt.getWorkflowTransitions();
+													//wtIndex = 0;
+													if (workflowTransitions.size() == 0) {
 														break;
 													}
+												} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+													System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+													wti.setHasViolation(false);
 													fieldMap = new HashMap<String, String>();
+													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+													workflowTransitions = wt.getWorkflowTransitions();
+													//wtIndex = 0;
+													if (workflowTransitions.size() == 0) {
+														break;
+													}
 												} else {
-													fieldMap.put("old_" + fieldName, previousValue);
-													fieldMap.put("new_" + fieldName, newValue);
+													fieldMap = new HashMap<String, String>();
+													wti.setHasViolation(true);
+													notifMessage = "A property was not set or a step was skipped!";
+													break;
 												}
+											} else {
+												fieldMap.put("old_" + fieldName, previousValue);
+												fieldMap.put("new_" + fieldName, newValue);
 											}
+
 										} else {
+											System.out.println("No workflow transitions");
 											wti.setHasViolation(false);
 										}
 
@@ -207,7 +221,8 @@ public class ProcessTicketChanges implements Runnable {
 									}
 								} else {
 
-									WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class, ticketChanges.getId());
+									WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class,
+											ticketChanges.getId());
 
 									if (wti == null) {
 										wti = new WorkflowTransitionInstance();

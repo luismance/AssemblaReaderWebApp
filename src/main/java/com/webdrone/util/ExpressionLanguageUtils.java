@@ -33,7 +33,7 @@ public class ExpressionLanguageUtils {
 				return ExpressionLanguageResultEnum.COMPLETE_FALSE;
 			}
 		} catch (JexlException e) {
-			System.out.println(e.getMessage());
+			e.printStackTrace();
 			return ExpressionLanguageResultEnum.INCOMPLETE;
 		}
 	}

@@ -52,7 +52,8 @@ public class TicketRestService {
 
 	@GET
 	@Path("/list")
-	public Response getTickets(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId, @QueryParam("per_page") int ticketsPerPage, @QueryParam("page") int page) {
+	public Response getTickets(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId, @QueryParam("per_page") int ticketsPerPage, @QueryParam("page") int page,
+			@QueryParam("sort_by") String sortBy, @QueryParam("violation_type") String violationType, @QueryParam("priority") String priority) {
 
 		if (ticketsPerPage == 0) {
 			ticketsPerPage = 10;
@@ -76,7 +77,7 @@ public class TicketRestService {
 			return Response.status(500).entity("Invalid space id!").build();
 		}
 
-		List<Ticket> ticketList = ticketService.getTicketsBySpace(spaceId, ticketsPerPage, page - 1);
+		List<Ticket> ticketList = ticketService.getTicketsBySpace(spaceId, ticketsPerPage, page - 1, sortBy, violationType, priority);
 		List<TicketAssemblaDto> result = new ArrayList<TicketAssemblaDto>();
 		for (Ticket ticket : ticketList) {
 			result.add(ticket.toDto());
@@ -90,7 +91,8 @@ public class TicketRestService {
 
 	@GET
 	@Path("/ticketCount")
-	public Response getTicketCount(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId) {
+	public Response getTicketCount(@HeaderParam("Authorization") String authorization, @QueryParam("space_id") String spaceId, @QueryParam("violation_type") String violationType,
+			@QueryParam("priority") String priority) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -105,7 +107,7 @@ public class TicketRestService {
 			return Response.status(500).entity("Invalid space id!").build();
 		}
 
-		long ticketCount = ticketService.getTicketCountBySpace(spaceId);
+		long ticketCount = ticketService.getTicketCountBySpace(spaceId, violationType, priority);
 		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
 		ticketCountDto.setTicketCount(ticketCount);
 		ticketCountDto.setSyncStatus(valResult.getResponseMessage());
@@ -125,7 +127,7 @@ public class TicketRestService {
 
 		long ticketCount = 0;
 		for (Space space : valResult.getUser().getSpaces()) {
-			ticketCount += ticketService.getTicketCountBySpace(space.getExternalRefId());
+			ticketCount += ticketService.getTicketCountBySpace(space.getExternalRefId(), "", "");
 		}
 
 		SpaceTicketCountDto ticketCountDto = new SpaceTicketCountDto();
@@ -188,7 +190,8 @@ public class TicketRestService {
 				ticketChangesDto.setHasViolation(wti.isHasViolation());
 				ticketChangesDto.setId(wti.getExternalRefId());
 
-				ticketChangesDto.setTicketChanges("- - " + wti.getOriginState().split(":")[0] + System.lineSeparator() + "- " + wti.getOriginState().split(":")[1] + System.lineSeparator() + "- " + wti.getTargetState().split(":")[1]);
+				ticketChangesDto.setTicketChanges("- - " + wti.getOriginState().split(":")[0] + System.lineSeparator() + "- " + wti.getOriginState().split(":")[1] + System.lineSeparator() + "- "
+						+ wti.getTargetState().split(":")[1]);
 				ticketChangesDto.setId(wti.getExternalRefId());
 				ticketChangesDto.setTicketId(wti.getTicket().getExternalRefId());
 				ticketChangesDto.setUpdatedAt(new DateTime(wti.getRemotelyUpdated()));
@@ -209,7 +212,8 @@ public class TicketRestService {
 
 			if (ticketChangesList == null) {
 				RESTServiceUtil.refreshBearerToken(valResult.getUser());
-				ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber + "/ticket_comments.xml?per_page=100", true, "Bearer " + valResult.getUser().getBearerToken());
+				ticketChangesXml = RESTServiceUtil.sendGET("https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticketNumber + "/ticket_comments.xml?per_page=100", true,
+						"Bearer " + valResult.getUser().getBearerToken());
 				ticketChangesList = (TicketChangesListDto) RESTServiceUtil.unmarshaller(TicketChangesListDto.class, ticketChangesXml);
 			}
 
