@@ -32,7 +32,7 @@ class NotificationList extends React.Component{
 
     $.ajax({
       type: "GET",
-      url: "rest/notification/list?per_page=" + thisComp.state.perPage + "&page=" + thisComp.state.currPage,
+      url: "rest/notification/list?per_page=" + thisComp.state.perPage + "&page=" + thisComp.state.currPage+"&spaceid=" + thisComp.props.spaceId,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
@@ -40,8 +40,18 @@ class NotificationList extends React.Component{
       dataType: "text",
       success : function(data) {
         var notificationJson = x2js.xml_str2json(data);
-        const notifications = notificationJson.notifications.notification.map(obj => obj);
-        thisComp.setState({ notifications });
+
+        if(notificationJson.notifications.notification instanceof Array) {
+          var notifications = notificationJson.notifications.notification.map(obj => obj);
+          thisComp.setState({ notifications });
+        }else if(notificationJson.notifications.notification instanceof Object){
+          var notificationObj = notificationJson.notifications.notification;
+          var notificationArray = [];
+          notificationArray.push(notificationObj);
+          thisComp.setState({ notifications : notificationArray });
+        }else{
+          thisComp.setState({ notifications : [] });
+        }
       },
       error: function(data) {
         console.log("Error : " + JSON.stringify(data));
@@ -50,7 +60,7 @@ class NotificationList extends React.Component{
 
     $.ajax({
       type: "GET",
-      url: "rest/notification/count",
+      url: "rest/notification/count?spaceid=" + thisComp.props.spaceId,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
@@ -84,7 +94,17 @@ class NotificationList extends React.Component{
     var notificationList = this.state.notifications.map((notification, i) =>(
       <div class="card bg-info text-white" style={{ marginTop: "5px", marginRight : "5px"}}>
         <div class="card-body">
-          <p class="card-text"><b>{notification.header}</b> {notification.message}</p>
+          <div class="row">
+            <div class="col-2">
+              <b>{notification.header}</b>
+            </div>
+            <div class="col">
+              {notification.message}
+            </div>
+            <div class="col-2">
+              {notification["violation-type"]}
+            </div>
+          </div>
         </div>
       </div>
     ));
@@ -92,7 +112,7 @@ class NotificationList extends React.Component{
     var curPage = this.state.currPage;
     var perPage = this.state.perPage;
     var totalNotifCount = this.state.totalNotifCount;
-    var totalNotifCountPerPage = totalNotifCount / perPage;
+    var totalNotifCountPerPage = Math.floor(totalNotifCount / perPage);
     var maxPage = totalNotifCountPerPage == 0 ? 1 : totalNotifCountPerPage;
     maxPage = totalNotifCountPerPage * perPage == totalNotifCount || totalNotifCount < perPage ? maxPage : maxPage + 1;
 

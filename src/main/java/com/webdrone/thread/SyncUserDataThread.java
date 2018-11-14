@@ -371,7 +371,7 @@ public class SyncUserDataThread implements Runnable {
 
 						TicketChangesListDto ticketChangesList = new TicketChangesListDto();
 
-						String ticketChangesXml = RESTServiceUtil.sendGET(
+						String ticketChangesXml = sendRequest(currentUser,
 								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
 								"Bearer " + currentUser.getBearerToken());
 
@@ -401,11 +401,12 @@ public class SyncUserDataThread implements Runnable {
 									StringBuilder originState = new StringBuilder();
 									StringBuilder targetState = new StringBuilder();
 
+									System.out.println("Processing " + ticket.getTicketNumber());
 									for (int i = 1; i < fields.length; i++) {
 										String[] fieldArray = fields[i].split("  - ");
 										String fieldName = fieldArray[0].replace("- - ", "").replace("\n", "");
 										String previousValue = fieldArray[1].replace("\n", "");
-										String newValue = fieldArray[2].replace("\n", "");
+										String newValue = fieldArray[2].replace("\n", "").isEmpty() ? "''" : fieldArray[2].replace("\n", "");
 
 										originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
 										targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
@@ -426,10 +427,9 @@ public class SyncUserDataThread implements Runnable {
 
 										String notifMessage = "";
 										if (workflowTransitions.size() > 0) {
+											currentWorkflowIndex = 0;
+											for (WorkflowTransition wt : workflowTransitions) {
 
-											for (int wtIndex = 0; i < workflowTransitions.size(); i++) {
-												WorkflowTransition wt = workflowTransitions.get(wtIndex);
-												currentWorkflowIndex = wtIndex;
 												wti.setWorkflowTransition(wt);
 
 												/* DATE VALUE PROCESSING START */
@@ -443,42 +443,57 @@ public class SyncUserDataThread implements Runnable {
 													newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
 												}
 
-												fieldMap.put("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+												if (fieldMap.containsKey("new_updated_at")) {
+													fieldMap.replace("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+												} else {
+													fieldMap.put("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+												}
+
 												/* DATE VALUE PROCESSING START */
 
-												if (fieldMap.get("old_" + fieldName) != null && fieldMap.get("new_" + fieldName) != null) {
-													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
-													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(true);
-														fieldMap = new HashMap<String, String>();
-														workflowTransitions = wt.getWorkflowTransitions();
-														wtIndex = 0;
-														if (workflowTransitions.size() == 0) {
-															break;
-														}
-													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(false);
-														fieldMap = new HashMap<String, String>();
-														workflowTransitions = wt.getWorkflowTransitions();
-														wtIndex = 0;
-														if (workflowTransitions.size() == 0) {
-															break;
-														}
-													} else {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(true);
-														notifMessage = "A property was not set or a step was skipped!";
+												if (fieldMap.containsKey("old_" + fieldName) && fieldMap.containsKey("old_" + fieldName)) {
+													fieldMap = new HashMap<String, String>();
+													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+													wti.setHasViolation(true);
+													notifMessage = "A property was not set or a step was skipped!";
+													break;
+												}
+
+												fieldMap.put("old_" + fieldName, previousValue);
+												fieldMap.put("new_" + fieldName, newValue);
+
+												ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
+												if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+													System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+													wti.setHasViolation(true);
+													fieldMap = new HashMap<String, String>();
+													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+													workflowTransitions = wt.getWorkflowTransitions();
+													notifMessage = wt.getErrorMessage();
+													// wtIndex = 0;
+													if (workflowTransitions.size() == 0) {
 														break;
 													}
+												} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+													System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+													wti.setHasViolation(false);
 													fieldMap = new HashMap<String, String>();
-												} else {
-													fieldMap.put("old_" + fieldName, previousValue);
-													fieldMap.put("new_" + fieldName, newValue);
+													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+													workflowTransitions = wt.getWorkflowTransitions();
+													notifMessage = wt.getErrorMessage();
+													// wtIndex = 0;
+													if (workflowTransitions.size() == 0) {
+														break;
+													}
 												}
+												currentWorkflowIndex++;
 											}
+
 										} else {
+											System.out.println("No workflow transitions");
 											wti.setHasViolation(false);
 										}
 
@@ -495,6 +510,8 @@ public class SyncUserDataThread implements Runnable {
 												notification.setMessage(notifMessage);
 												notification.setWorkflowTransitionInstance(wti);
 												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
+												notification.setViolationType(wti.getWorkflowTransition().getViolationType());
+												notification.setSpace(space);
 												notificationService.threadCreate(utx, entityManager, notification);
 											}
 										}

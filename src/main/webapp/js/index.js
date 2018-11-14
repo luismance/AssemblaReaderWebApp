@@ -5,12 +5,16 @@ class TicketItem extends React.Component {
       violationCount: 0,
       ticketChanges: []
     };
+
+    this.componentDidMount = this.componentDidMount.bind(this);
   }
 
   componentDidMount() {
     var thisComp = this;
     var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
+
+    console.log("Ticket Num : " + this.props.number);
 
     if(userItem == null){
       window.location.href = "login.html";
@@ -39,67 +43,49 @@ class TicketItem extends React.Component {
     });
   }
 
-
   render() {
     var ticketChanges = "";
     var spanAsterisk = <span class='fa fa-asterisk' />;
     var spanArrow = <span class='fa fa-arrow-right' />;
 
+    var ticketChangesArray = [];
     if (this.state.ticketChanges instanceof Array) {
-        var ticketChangesArray = this.state.ticketChanges.map((ticketChange, i) => {
-        var hasViolation = ticketChange["has-violation"];
-        if (ticketChange["ticket-changes"].includes("--- []")) {
-          return "";
-        } else {
-          var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
-          var finalTicketChanges="";
-          var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
-          for (var i = 1; i < formattedTicketChangesArray.length; i++) {
-            var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
-            var tcProp = ticketCommentItem[0].replace("_id", "").replace("_", " ");
-            var tcPrevValue = ticketCommentItem[1];
-            var tcNewValue = ticketCommentItem[2];
-            finalTicketChanges += tcProp + " : " + tcPrevValue + "=>" +tcNewValue;
-            if (i < formattedTicketChangesArray.length) {
-              finalTicketChanges += "\n";
-            }
-          }
-
-          return (
-            <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")} style={{ marginLeft: "25px"  }}>
-              {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>
-            </a>
-          );
-        }
-      });
-
-      ticketChanges = ticketChangesArray;
-    } else {
+      ticketChangesArray = this.state.ticketChanges;
+    } else if (this.state.ticketChanges instanceof Object) {
       var ticketChange = this.state.ticketChanges;
+      ticketChangesArray.push(ticketChange);
+    }else{
+      ticketChangesArray = [];
+    }
+
+    var ticketChangesArrayUI = ticketChangesArray.map((ticketChange, i) => {
       var hasViolation = ticketChange["has-violation"];
       if (ticketChange["ticket-changes"].includes("--- []")) {
-        ticketChange = "";
+        return "";
       } else {
         var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
-        var finalTicketChanges = "";
+        var finalTicketChanges="";
         var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
         for (var i = 1; i < formattedTicketChangesArray.length; i++) {
           var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
-          finalTicketChanges += ticketCommentItem[0].replace("\n", "") + " : " + ticketCommentItem[1].replace("\n", "") + " => " + ticketCommentItem[2].replace("\n", "");
+          var tcProp = ticketCommentItem[0].replace("_id", "").replace("_", " ");
+          var tcPrevValue = ticketCommentItem[1];
+          var tcNewValue = ticketCommentItem[2];
+          finalTicketChanges += tcProp + " : " + tcPrevValue + "=>" +tcNewValue;
           if (i < formattedTicketChangesArray.length) {
-            finalTicketChanges += "||";
+            finalTicketChanges += "\n";
           }
         }
 
         return (
-          <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")}>
+          <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")} style={{ marginLeft: "25px"  }}>
             {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>
           </a>
         );
-
-        ticketChanges = ticketChange;
       }
-    }
+    });
+
+    ticketChanges = ticketChangesArrayUI;
 
     var ticketChangesFull = <ul className="list-group">{ticketChanges}</ul>;
 
@@ -243,21 +229,24 @@ class SpaceList extends React.Component {
   filterViolation(violationType){
     console.log("violation filter : " + violationType);
     this.setState({
-      violationFilter : violationType
+      violationFilter : violationType,
+      currentPage : 1
     }, () => this.updateTickets());
   }
 
   filterPriority(priorityLevel){
     console.log("priority filter : " + priorityLevel);
     this.setState({
-      priorityFilter : priorityLevel
+      priorityFilter : priorityLevel,
+      currentPage : 1
     }, () => this.updateTickets());
   }
 
   updateTicketCount(ticketCount){
     console.log("ticket count : " + ticketCount);
     this.setState({
-      ticketCount
+      ticketCount,
+      currentPage : 1
     }, () => this.updateTickets());
   }
 
@@ -515,6 +504,11 @@ class SpaceList extends React.Component {
         </div>
       </div>
     );
+    var currentSpaceId = getURLParameter("space_id");
+
+    if (!currentSpaceId && this.state.spaces.length > 0) {
+      currentSpaceId = this.state.spaces[0].id;
+    }
 
     return (
       <div>
@@ -531,7 +525,7 @@ class SpaceList extends React.Component {
                 </div>
               </div>
             </div>
-            <NotificationList />
+            <NotificationList spaceId={currentSpaceId}/>
           </div>
         </div>
       </div>

@@ -12,6 +12,8 @@ public class NotificationDto {
 
 	private String notificationMessage;
 
+	private String violationType;
+
 	@XmlElement(name = "id")
 	public String getId() {
 		return Id;
@@ -37,6 +39,15 @@ public class NotificationDto {
 
 	public void setNotificationMessage(String notificationMessage) {
 		this.notificationMessage = notificationMessage;
+	}
+
+	@XmlElement(name = "violation-type")
+	public String getViolationType() {
+		return violationType;
+	}
+
+	public void setViolationType(String violationType) {
+		this.violationType = violationType;
 	}
 
 }

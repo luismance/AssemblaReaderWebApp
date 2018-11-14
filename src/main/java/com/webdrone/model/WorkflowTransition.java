@@ -36,6 +36,9 @@ public class WorkflowTransition extends BaseModel {
 	@Column(name = "IS_START")
 	private boolean isFirstStep = false;
 
+	@Column(name = "VIOLATION_TYPE")
+	private String violationType;
+
 	public WorkflowTransition() {
 		super();
 	}
@@ -86,6 +89,14 @@ public class WorkflowTransition extends BaseModel {
 
 	public void setFirstStep(boolean isFirstStep) {
 		this.isFirstStep = isFirstStep;
+	}
+
+	public String getViolationType() {
+		return violationType;
+	}
+
+	public void setViolationType(String violationType) {
+		this.violationType = violationType;
 	}
 
 }

@@ -33,7 +33,11 @@ public class ExpressionLanguageUtils {
 				return ExpressionLanguageResultEnum.COMPLETE_FALSE;
 			}
 		} catch (JexlException e) {
-			e.printStackTrace();
+			if (e.getMessage().contains("undefined")) {
+				System.out.println("Undefined : " + e.getMessage().split("undefined variable")[1]);
+			} else {
+				e.printStackTrace();
+			}
 			return ExpressionLanguageResultEnum.INCOMPLETE;
 		}
 	}

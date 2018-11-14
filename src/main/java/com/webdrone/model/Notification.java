@@ -13,6 +13,10 @@ public class Notification extends BaseModel {
 	private static final long serialVersionUID = 1L;
 
 	@ManyToOne(optional = false)
+	@JoinColumn(name = "SPACE_ID", nullable = false)
+	private Space space;
+
+	@ManyToOne(optional = false)
 	@JoinColumn(name = "WORKFLOW_TRANSITION_INSTANCE_ID", nullable = false)
 	private WorkflowTransitionInstance workflowTransitionInstance;
 
@@ -23,8 +27,22 @@ public class Notification extends BaseModel {
 	@Column(name = "MESSAGE", columnDefinition = "TEXT")
 	private String message;
 
+	@Column(name = "VIOLATION_TYPE")
+	private String violationType;
+
+	@Column(name = "IS_VERIFIED")
+	private boolean isVerified = false;
+
 	public Notification() {
 		super();
+	}
+
+	public Space getSpace() {
+		return space;
+	}
+
+	public void setSpace(Space space) {
+		this.space = space;
 	}
 
 	public WorkflowTransitionInstance getWorkflowTransitionInstance() {
@@ -49,6 +67,22 @@ public class Notification extends BaseModel {
 
 	public void setMessage(String message) {
 		this.message = message;
+	}
+
+	public String getViolationType() {
+		return violationType;
+	}
+
+	public void setViolationType(String violationType) {
+		this.violationType = violationType;
+	}
+
+	public boolean isVerified() {
+		return isVerified;
+	}
+
+	public void setVerified(boolean isVerified) {
+		this.isVerified = isVerified;
 	}
 
 }

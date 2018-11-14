@@ -34,7 +34,8 @@ public class NotificationRestService {
 
 	@GET
 	@Path("/list")
-	public Response getNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("per_page") int notifsPerPage, @QueryParam("page") int page) {
+	public Response getNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("per_page") int notifsPerPage, @QueryParam("page") int page, @QueryParam("spaceid") String spaceId,
+			@QueryParam("violation_type") String violationType) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -42,7 +43,7 @@ public class NotificationRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), page - 1, notifsPerPage);
+		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), page - 1, notifsPerPage, spaceId, violationType);
 
 		List<NotificationDto> notificationsDto = new ArrayList<NotificationDto>();
 
@@ -51,6 +52,7 @@ public class NotificationRestService {
 			ndto.setId(notification.getId() + "");
 			ndto.setNotificationHeader("Ticket #" + notification.getWorkflowTransitionInstance().getTicket().getTicketNumber());
 			ndto.setNotificationMessage(notification.getMessage().isEmpty() ? notification.getWorkflowTransitionViolated().getErrorMessage() : notification.getMessage());
+			ndto.setViolationType(notification.getViolationType());
 			notificationsDto.add(ndto);
 		}
 
@@ -62,7 +64,7 @@ public class NotificationRestService {
 
 	@GET
 	@Path("/count")
-	public Response getNotificationTotalCount(@HeaderParam("Authorization") String authorization) {
+	public Response getNotificationTotalCount(@HeaderParam("Authorization") String authorization, @QueryParam("spaceid") String spaceId, @QueryParam("violation_type") String violationType) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -71,7 +73,7 @@ public class NotificationRestService {
 		}
 
 		NotificationCountDto notificationCountDto = new NotificationCountDto();
-		notificationCountDto.setNotificationCount(notificationService.getNotificationCount(valResult.getUser().getSpaces()));
+		notificationCountDto.setNotificationCount(notificationService.getNotificationCount(valResult.getUser().getSpaces(), spaceId, violationType));
 		return Response.status(200).entity(notificationCountDto).build();
 
 	}
