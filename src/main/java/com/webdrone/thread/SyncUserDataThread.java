@@ -2,6 +2,7 @@ package com.webdrone.thread;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,8 @@ import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
+
+import org.joda.time.DateTime;
 
 import com.webdrone.assembla.dto.MilestoneAssemblaDto;
 import com.webdrone.assembla.dto.MilestoneListAssemblaDto;
@@ -150,7 +153,9 @@ public class SyncUserDataThread implements Runnable {
 
 				currentUser.setSyncStatus("Space sync done");
 
+				System.out.println("Updating user");
 				userService.threadUpdate(utx, entityManager, currentUser);
+				System.out.println("User Updated");
 
 				System.out.println("DONE SPACE Sync");
 
@@ -175,7 +180,7 @@ public class SyncUserDataThread implements Runnable {
 
 					do {
 						milestonesXml = sendRequest(currentUser,
-								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/milestones.xml?per_page=" + milestonesPerPage + "&page=" + milestonePage, true,
+								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/milestones/all.xml?per_page=" + milestonesPerPage + "&page=" + milestonePage, true,
 								"Bearer " + currentUser.getBearerToken());
 
 						milestoneObj = RESTServiceUtil.unmarshaller(MilestoneListAssemblaDto.class, milestonesXml);
@@ -246,7 +251,10 @@ public class SyncUserDataThread implements Runnable {
 				userService.threadUpdate(utx, entityManager, currentUser);
 				int ticketsPerPage = 100;
 
+				Date latestUpdate = ticketService.getLatestTicketUpdate(entityManager, currentUser.getSpaces());
+
 				for (Space space : currentUser.getSpaces()) {
+					boolean syncTicket = true;
 					System.out.println("Current Space : " + space.getExternalRefId());
 					currentUser.setSyncStatus("Syncing tickets from " + space.getWikiname());
 					userService.threadUpdate(utx, entityManager, currentUser);
@@ -255,8 +263,8 @@ public class SyncUserDataThread implements Runnable {
 						int page = 1;
 						int ticketListSize = 0;
 						do {
-							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page,
-									true, "Bearer " + currentUser.getBearerToken());
+							String ticketsXml = sendRequest(currentUser, "https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets.xml?per_page=" + ticketsPerPage + "&page=" + page
+									+ "&sorty_by=updated_at&sort_order=asc", true, "Bearer " + currentUser.getBearerToken());
 
 							Object ticketListObj = RESTServiceUtil.unmarshaller(TicketListAssemblaDto.class, ticketsXml);
 
@@ -264,91 +272,104 @@ public class SyncUserDataThread implements Runnable {
 								ticketListAssemblaDto = (TicketListAssemblaDto) ticketListObj;
 								ticketListSize = ticketListAssemblaDto.getTickets().size();
 								for (TicketAssemblaDto ticketAssemblaDto : ticketListAssemblaDto.getTickets()) {
-									Object ticketObj = ticketService.findByExternalRefId(entityManager, Ticket.class, ticketAssemblaDto.getId());
-									Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
 
-									Object reporterObj = userService.findByExternalRefId(entityManager, User.class, ticketAssemblaDto.getReporterId());
-									User reporter = reporterObj != null ? (User) reporterObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(), currentUser.getBearerToken());
-
-									if (reporterObj == null) {
-										userService.threadCreate(utx, entityManager, reporter);
+									if (latestUpdate == null) {
+										syncTicket = true;
 									} else {
-										userService.threadUpdate(utx, entityManager, reporter);
+										syncTicket = ticketAssemblaDto.getUpdatedAt().isAfter(latestUpdate.getTime());
 									}
 
-									Object assignedObj = userService.findByExternalRefId(entityManager, User.class, ticketAssemblaDto.getAssignedToId());
-									User assignedTo = null;
+									System.out.println("ticket num : " + ticketAssemblaDto.getNumber() + ", Local Latest : " + (latestUpdate != null ? latestUpdate.getTime() : "null")
+											+ ", Remote Latest : " + ticketAssemblaDto.getUpdatedAt().getMillis() + ", sync ticket : " + syncTicket);
 
-									if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-										assignedTo = assignedObj != null ? (User) assignedObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(), currentUser.getBearerToken());
+									if (syncTicket) {
+										Object ticketObj = ticketService.findByExternalRefId(entityManager, Ticket.class, ticketAssemblaDto.getId());
+										Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
 
-										if (assignedObj == null) {
-											userService.threadCreate(utx, entityManager, assignedTo);
+										Object reporterObj = userService.findByExternalRefId(entityManager, User.class, ticketAssemblaDto.getReporterId());
+										User reporter = reporterObj != null ? (User) reporterObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getReporterId(), currentUser.getBearerToken());
+
+										if (reporterObj == null) {
+											userService.threadCreate(utx, entityManager, reporter);
 										} else {
-											userService.threadUpdate(utx, entityManager, assignedTo);
+											userService.threadUpdate(utx, entityManager, reporter);
 										}
-									}
 
-									Milestone milestone = null;
+										Object assignedObj = userService.findByExternalRefId(entityManager, User.class, ticketAssemblaDto.getAssignedToId());
+										User assignedTo = null;
 
-									if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
-										Object milestonObj = milestoneService.findByExternalRefId(entityManager, Milestone.class, ticketAssemblaDto.getMilestoneId());
-										milestone = milestonObj != null ? (Milestone) milestonObj : null;
-									}
-
-									Workflow workflow = workflowService.getWorkflowByName(entityManager, ticketAssemblaDto.getCustomFields().getType());
-
-									if (workflow != null) {
-										space.setCanProcessTicketChanges(true);
-									} else {
-										space.setCanProcessTicketChanges(false);
-									}
-									spaceService.threadUpdate(utx, entityManager, space);
-									/*
-									 * START : TICKET SYNC
-									 */
-									if (currentTicket != null) {
 										if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
-											currentTicket.setAssignedTo(assignedTo);
+											assignedTo = assignedObj != null ? (User) assignedObj : RESTServiceUtil.convertUserXml(ticketAssemblaDto.getAssignedToId(), currentUser.getBearerToken());
+
+											if (assignedObj == null) {
+												userService.threadCreate(utx, entityManager, assignedTo);
+											} else {
+												userService.threadUpdate(utx, entityManager, assignedTo);
+											}
 										}
-										currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null);
-										currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
-										currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
-										currentTicket.setExternalRefId(ticketAssemblaDto.getId());
-										currentTicket.setImportance(ticketAssemblaDto.getImportance());
-										currentTicket.setMilestone(milestone);
-										currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
-										currentTicket.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
-										currentTicket.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
-										currentTicket.setReporter(reporter);
-										currentTicket.setSpace(space);
-										currentTicket.setStatus(ticketAssemblaDto.getStatus());
-										currentTicket.setStory(ticketAssemblaDto.isStory());
-										currentTicket.setStoryImportance(ticketAssemblaDto.getStoryImportance());
-										currentTicket.setSummary(ticketAssemblaDto.getSummary());
-										currentTicket.setTicketNumber(ticketAssemblaDto.getNumber());
-										currentTicket.setTotalEstimate(ticketAssemblaDto.getTotalEstimate());
-										currentTicket.setTotalInvestedHours(ticketAssemblaDto.getTotalInvestedHours());
-										currentTicket.setTotalWorkingHours(ticketAssemblaDto.getTotalWorkingHours());
-										currentTicket.setWorkflow(workflow);
-										currentTicket.setWorkingHours(ticketAssemblaDto.getWorkingHours());
 
-										ticketService.threadUpdate(utx, entityManager, currentTicket);
-									} else {
-										currentTicket = new Ticket(ticketAssemblaDto, space, milestone, reporter, assignedTo, workflow);
-										ticketService.threadCreate(utx, entityManager, currentTicket);
+										Milestone milestone = null;
+
+										if (!ticketAssemblaDto.getMilestoneId().isEmpty()) {
+											Object milestonObj = milestoneService.findByExternalRefId(entityManager, Milestone.class, ticketAssemblaDto.getMilestoneId());
+											milestone = milestonObj != null ? (Milestone) milestonObj : null;
+										}
+
+										Workflow workflow = workflowService.getWorkflowByName(entityManager, ticketAssemblaDto.getCustomFields().getType());
+
+										if (workflow != null) {
+											space.setCanProcessTicketChanges(true);
+										} else {
+											space.setCanProcessTicketChanges(false);
+										}
+										spaceService.threadUpdate(utx, entityManager, space);
+										/*
+										 * START : TICKET SYNC
+										 */
+										if (currentTicket != null) {
+											if (!ticketAssemblaDto.getAssignedToId().isEmpty()) {
+												currentTicket.setAssignedTo(assignedTo);
+											}
+											currentTicket.setCompletedDate(ticketAssemblaDto.getCompletedDate() != null ? ticketAssemblaDto.getCompletedDate().toDate() : null);
+											currentTicket.setDescription(new String(ticketAssemblaDto.getDescription()));
+											currentTicket.setEstimate(ticketAssemblaDto.getEstimate());
+											currentTicket.setExternalRefId(ticketAssemblaDto.getId());
+											currentTicket.setImportance(ticketAssemblaDto.getImportance());
+											currentTicket.setMilestone(milestone);
+											currentTicket.setPriorityTypeId(ticketAssemblaDto.getPriority());
+											currentTicket.setRemotelyCreated(ticketAssemblaDto.getCreatedOn() != null ? ticketAssemblaDto.getCreatedOn().toDate() : null);
+											currentTicket.setRemotelyUpdated(ticketAssemblaDto.getUpdatedAt() != null ? ticketAssemblaDto.getUpdatedAt().toDate() : null);
+											currentTicket.setReporter(reporter);
+											currentTicket.setSpace(space);
+											currentTicket.setStatus(ticketAssemblaDto.getStatus());
+											currentTicket.setStory(ticketAssemblaDto.isStory());
+											currentTicket.setStoryImportance(ticketAssemblaDto.getStoryImportance());
+											currentTicket.setSummary(ticketAssemblaDto.getSummary());
+											currentTicket.setTicketNumber(ticketAssemblaDto.getNumber());
+											currentTicket.setTotalEstimate(ticketAssemblaDto.getTotalEstimate());
+											currentTicket.setTotalInvestedHours(ticketAssemblaDto.getTotalInvestedHours());
+											currentTicket.setTotalWorkingHours(ticketAssemblaDto.getTotalWorkingHours());
+											currentTicket.setWorkflow(workflow);
+											currentTicket.setWorkingHours(ticketAssemblaDto.getWorkingHours());
+
+											ticketService.threadUpdate(utx, entityManager, currentTicket);
+										} else {
+											currentTicket = new Ticket(ticketAssemblaDto, space, milestone, reporter, assignedTo, workflow);
+											ticketService.threadCreate(utx, entityManager, currentTicket);
+										}
+
+										/*
+										 * END : TICKET SYNC
+										 */
+										System.out.println("Page : " + page + ", Ticket List Size : " + ticketListSize);
 									}
-
-									/*
-									 * END : TICKET SYNC
-									 */
 								}
-								System.out.println("Page : " + page + ", Ticket List Size : " + ticketListSize);
+								
 								page++;
 							} else {
 								ticketListSize = 0;
 							}
-						} while (ticketListSize > 0);
+						} while (ticketListSize > 0 && syncTicket);
 					}
 				}
 
@@ -428,9 +449,10 @@ public class SyncUserDataThread implements Runnable {
 										String notifMessage = "";
 										if (workflowTransitions.size() > 0) {
 											currentWorkflowIndex = 0;
-											for (WorkflowTransition wt : workflowTransitions) {
+											ExpressionLanguageResultEnum evalResult = ExpressionLanguageResultEnum.COMPLETE_FALSE;
+											for (int wtIndex = 0; wtIndex < workflowTransitions.size(); wtIndex++) {
 
-												wti.setWorkflowTransition(wt);
+												wti.setWorkflowTransition(workflowTransitions.get(wtIndex));
 
 												/* DATE VALUE PROCESSING START */
 												if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
@@ -444,52 +466,45 @@ public class SyncUserDataThread implements Runnable {
 												}
 
 												if (fieldMap.containsKey("new_updated_at")) {
-													fieldMap.replace("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+													fieldMap.replace("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
 												} else {
-													fieldMap.put("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+													fieldMap.put("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
 												}
 
 												/* DATE VALUE PROCESSING START */
 
 												if (fieldMap.containsKey("old_" + fieldName) && fieldMap.containsKey("old_" + fieldName)) {
-													fieldMap = new HashMap<String, String>();
-													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
 													wti.setHasViolation(true);
 													notifMessage = "A property was not set or a step was skipped!";
 													break;
-												}
+												} else {
+													fieldMap.put("old_" + fieldName, previousValue);
+													fieldMap.put("new_" + fieldName, newValue);
 
-												fieldMap.put("old_" + fieldName, previousValue);
-												fieldMap.put("new_" + fieldName, newValue);
-
-												ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
-												if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
-													System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-													wti.setHasViolation(true);
-													fieldMap = new HashMap<String, String>();
-													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-													workflowTransitions = wt.getWorkflowTransitions();
-													notifMessage = wt.getErrorMessage();
-													// wtIndex = 0;
-													if (workflowTransitions.size() == 0) {
-														break;
-													}
-												} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
-													System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-													wti.setHasViolation(false);
-													fieldMap = new HashMap<String, String>();
-													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-													workflowTransitions = wt.getWorkflowTransitions();
-													notifMessage = wt.getErrorMessage();
-													// wtIndex = 0;
-													if (workflowTransitions.size() == 0) {
-														break;
+													evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(wtIndex).getExpressionLanguage());
+													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+														wti.setHasViolation(false);
+														fieldMap = new HashMap<String, String>();
+														fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+														fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+														fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
+														workflowTransitions = workflowTransitions.get(wtIndex).getWorkflowTransitions();
+														wtIndex = 0;
+														if (workflowTransitions.size() == 0) {
+															break;
+														}
 													}
 												}
-												currentWorkflowIndex++;
+
+												currentWorkflowIndex = wtIndex;
+											}
+
+											if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
+												wti.setHasViolation(true);
+												notifMessage = workflowTransitions.get(currentWorkflowIndex).getErrorMessage();
 											}
 
 										} else {
@@ -507,49 +522,55 @@ public class SyncUserDataThread implements Runnable {
 
 											if (wti.isHasViolation()) {
 												Notification notification = new Notification();
+												notification.setSpace(space);
+												notification.setTicket(ticket);
 												notification.setMessage(notifMessage);
 												notification.setWorkflowTransitionInstance(wti);
 												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
 												notification.setViolationType(wti.getWorkflowTransition().getViolationType());
-												notification.setSpace(space);
 												notificationService.threadCreate(utx, entityManager, notification);
 											}
 										}
 									}
 								} else {
 
-									WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager, WorkflowTransitionInstance.class,
-											ticketChanges.getId());
+									if (!ticketChanges.getComment().isEmpty()) {
+										WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager,
+												WorkflowTransitionInstance.class, ticketChanges.getId());
 
-									if (wti == null) {
-										wti = new WorkflowTransitionInstance();
-									}
-
-									wti.setExternalRefId(ticketChanges.getId());
-									wti.setMessage(ticketChanges.getComment());
-									wti.setSpace(space);
-									wti.setTicket(ticket);
-									wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
-									wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
-									if (workflowTransitions.size() > 0 && currentWorkflowIndex < workflowTransitions.size()) {
-										wti.setWorkflowTransition(workflowTransitions.get(currentWorkflowIndex));
-									}
-									wti.setOriginState("comment : ''");
-									wti.setTargetState("comment : " + ticketChanges.getComment());
-
-									if (wti.getId() != null) {
-										workflowTransitionInstanceService.threadUpdate(utx, entityManager, wti);
-
-										if (wti.isHasViolation()) {
-											Notification notification = new Notification();
-											notification.setWorkflowTransitionInstance(wti);
-											notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
-											notificationService.threadCreate(utx, entityManager, notification);
+										if (wti == null) {
+											wti = new WorkflowTransitionInstance();
 										}
-									} else {
-										workflowTransitionInstanceService.threadCreate(utx, entityManager, wti);
-									}
 
+										wti.setExternalRefId(ticketChanges.getId());
+										wti.setMessage(ticketChanges.getComment());
+										wti.setSpace(space);
+										wti.setTicket(ticket);
+										wti.setRemotelyCreated(ticketChanges.getCreatedOn() != null ? ticketChanges.getCreatedOn().toDate() : null);
+										wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
+										if (workflowTransitions.size() > 0 && currentWorkflowIndex < workflowTransitions.size()) {
+											wti.setWorkflowTransition(workflowTransitions.get(currentWorkflowIndex));
+										}
+										wti.setOriginState("comment : ''");
+										wti.setTargetState("comment : " + ticketChanges.getComment());
+
+										if (wti.getId() != null) {
+											workflowTransitionInstanceService.threadUpdate(utx, entityManager, wti);
+
+											if (wti.isHasViolation()) {
+												Notification notification = new Notification();
+												notification.setSpace(space);
+												notification.setTicket(ticket);
+												notification.setWorkflowTransitionInstance(wti);
+												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
+												notification.setViolationType(wti.getWorkflowTransition().getViolationType());
+												notificationService.threadCreate(utx, entityManager, notification);
+											}
+										} else {
+											workflowTransitionInstanceService.threadCreate(utx, entityManager, wti);
+										}
+
+									}
 								}
 
 							}

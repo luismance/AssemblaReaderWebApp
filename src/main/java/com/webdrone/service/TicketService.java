@@ -1,11 +1,18 @@
 package com.webdrone.service;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import javax.ejb.Stateless;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 
+import org.joda.time.DateTime;
+
+import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
 
 @Stateless
@@ -34,7 +41,7 @@ public class TicketService extends BaseService<Ticket> {
 
 		}
 
-		if (!priority.isEmpty()) {
+		if (!priority.isEmpty() && priority != "0") {
 			queryString += " AND t.priorityTypeId=" + priority;
 		}
 
@@ -69,11 +76,37 @@ public class TicketService extends BaseService<Ticket> {
 
 		}
 
-		if (!priority.isEmpty()) {
+		if (!priority.isEmpty() && priority != "0") {
 			queryString += " AND t.priorityTypeId=" + priority;
 		}
-		return Long.parseLong(
-				getEntityManager().createQuery(queryString).getSingleResult().toString());
+		return Long.parseLong(getEntityManager().createQuery(queryString).getSingleResult().toString());
+	}
+
+	public Date getLatestTicketUpdate(EntityManager em, Set<Space> spaces) throws ParseException {
+
+		if (spaces.size() > 0) {
+			StringBuilder spaceIds = new StringBuilder();
+
+			for (Space space : spaces) {
+				if (spaceIds.length() > 0) {
+					spaceIds.append(",");
+				}
+				spaceIds.append("'").append(space.getExternalRefId()).append("'");
+			}
+			String queryString = "SELECT t.dateUpdated FROM " + Ticket.class.getSimpleName() + " t WHERE t.space.externalRefId IN(" + spaceIds.toString() + ") ORDER BY t.dateUpdated DESC";
+
+			String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
+			SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+
+			String dateToParse = em.createQuery(queryString).getResultList().size() > 0 ? em.createQuery(queryString).getResultList().get(0).toString() : "";
+			if (dateToParse.isEmpty()) {
+				return null;
+			}
+			return simpleDateFormat.parse(em.createQuery(queryString).getResultList().get(0).toString());
+		}
+
+		return null;
+
 	}
 
 }

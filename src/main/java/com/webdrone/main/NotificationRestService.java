@@ -1,5 +1,9 @@
 package com.webdrone.main;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +16,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import com.webdrone.assembla.dto.NotificationCountDto;
 import com.webdrone.assembla.dto.NotificationDto;
@@ -43,6 +48,9 @@ public class NotificationRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
+		if (violationType == null) {
+			violationType = "";
+		}
 		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), page - 1, notifsPerPage, spaceId, violationType);
 
 		List<NotificationDto> notificationsDto = new ArrayList<NotificationDto>();
@@ -72,9 +80,43 @@ public class NotificationRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
+		if (violationType == null) {
+			violationType = "";
+		}
 		NotificationCountDto notificationCountDto = new NotificationCountDto();
 		notificationCountDto.setNotificationCount(notificationService.getNotificationCount(valResult.getUser().getSpaces(), spaceId, violationType));
 		return Response.status(200).entity(notificationCountDto).build();
 
+	}
+
+	@GET
+	@Path("/export")
+	public Response exportNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("spaceid") String spaceId, @QueryParam("violation_type") String violationType) {
+
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		if (violationType == null) {
+			violationType = "";
+		}
+		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), -1, 0, spaceId, violationType);
+
+		String[] priorityLabel = { "Highest", "High", "Normal", "Low", "Lowest" };
+
+		StringBuilder sb = new StringBuilder();
+		sb.append("date_updated;violation_type;ticket_number;milestone;priority;user;ticket_type").append(System.lineSeparator());
+		for (Notification notification : notifications) {
+			sb.append(notification.getDateCreated()).append(";");
+			sb.append(notification.getViolationType()).append(";");
+			sb.append(notification.getTicket().getTicketNumber()).append(";");
+			sb.append(notification.getTicket().getMilestone() != null ? notification.getTicket().getMilestone().getTitle() : "").append(";");
+			sb.append(priorityLabel[notification.getTicket().getPriorityTypeId() - 1]).append(";");
+			sb.append(notification.getWorkflowTransitionInstance().getWorkflowTransition().getWorkflow().getName()).append(System.lineSeparator());
+		}
+
+		return Response.status(200).entity(sb.toString()).build();
 	}
 }

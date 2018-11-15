@@ -51,7 +51,7 @@ public class User extends BaseModel {
 	@Column(name = "SYNC_STATUS", length = 255, nullable = true)
 	private String syncStatus;
 
-	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.EAGER)
+	@ManyToMany(cascade = { CascadeType.PERSIST }, fetch = FetchType.EAGER)
 	@JoinTable(name = "user_space", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "space_id", referencedColumnName = "id"))
 	private Set<Space> spaces = new HashSet<Space>();
 

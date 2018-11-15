@@ -7,6 +7,7 @@ class TicketItem extends React.Component {
     };
 
     this.componentDidMount = this.componentDidMount.bind(this);
+    this.updateTicketChanges = this.updateTicketChanges.bind(this);
   }
 
   componentDidMount() {
@@ -14,7 +15,37 @@ class TicketItem extends React.Component {
     var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
 
-    console.log("Ticket Num : " + this.props.number);
+    if(userItem == null){
+      window.location.href = "login.html";
+    }
+
+    var x2js = new X2JS();
+
+    $.ajax({
+      type: "GET",
+      url: "rest/ticket/ticketChanges?space_id=" + this.props.spaceId + "&ticket_num=" + this.props.number,
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      dataType: "text",
+      success: function(data) {
+        var ticketChangesJson = x2js.xml_str2json(data);
+        const ticketChanges = ticketChangesJson["ticket-comments"]["ticket-comment"];
+        if (ticketChanges || ticketChanges != null) {
+          thisComp.setState({ ticketChanges });
+        }
+      },
+      error: function(data) {
+        console.log("Error : " + JSON.stringify(data));
+      }
+    });
+  }
+
+  updateTicketChanges(){
+    var thisComp = this;
+    var userData = localStorage.getItem("userData");
+    var userItem = JSON.parse(userData);
 
     if(userItem == null){
       window.location.href = "login.html";
@@ -106,7 +137,7 @@ class TicketItem extends React.Component {
 
     var listItems = (
       <div class="panel panel-default">
-        <a class="list-group-item" data-toggle="collapse" href={"#collapse" + this.props.number}>
+        <a class="list-group-item" data-toggle="collapse" href={"#collapse" + this.props.number} onClick={this.updateTicketChanges}>
           <div class="row">
             <div class="col-1">
               #{this.props.number}
@@ -375,11 +406,17 @@ class SpaceList extends React.Component {
         </li>
       );
 
+    var sortByMap = new Map();
+    sortByMap.set("last_updated", "Last Updated");
+    sortByMap.set("milestone", "Milestone");
+    sortByMap.set("ticket_num", "Ticket #");
+    sortByMap.set("priority", "Priority");
+
     var ticketFilters = (
       <div className="row" style={{ margin: "10px"}}>
         <div className="dropdown">
           <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Tickets per page
+            Tickets per page ({this.state.ticketCount})
           </button>
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
             <a className="dropdown-item" onClick={() => this.updateTicketCount(10)}>
@@ -395,7 +432,7 @@ class SpaceList extends React.Component {
         </div>
         <div className="dropdown"  style={{ marginLeft: "10px"}}>
           <button className="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Sort By
+            Sort By ({sortByMap.get(this.state.sortBy.split("-")[0])})
           </button>
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
             <a className="dropdown-item" onClick={() => this.sortTickets("last_updated")}>
@@ -414,7 +451,7 @@ class SpaceList extends React.Component {
         </div>
         <div className="dropdown"  style={{ marginLeft: "10px"}}>
           <button className="btn btn-secondary dropdown-toggle" type="button" id="ddViolationType" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Violation Type
+            Violation Type({this.state.violationFilter})
           </button>
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
             <a className="dropdown-item" onClick={() => this.filterViolation("all")}>
@@ -430,9 +467,12 @@ class SpaceList extends React.Component {
         </div>
         <div className="dropdown"  style={{ marginLeft: "10px"}}>
           <button className="btn btn-secondary dropdown-toggle" type="button" id="ddViolationType" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Priority
+            Priority({this.state.priorityFilter})
           </button>
           <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
+            <a className="dropdown-item" onClick={() => this.filterPriority(0)}>
+              None
+            </a>
             <a className="dropdown-item" onClick={() => this.filterPriority(1)}>
               Highest
             </a>

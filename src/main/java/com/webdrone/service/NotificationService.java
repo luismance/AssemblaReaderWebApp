@@ -23,7 +23,7 @@ public class NotificationService extends BaseService<Notification> {
 		if (spaces.size() > 0) {
 			StringBuilder spaceIds = new StringBuilder();
 
-			if (spaceId.isEmpty()) {
+			if (spaceId != null && spaceId.isEmpty()) {
 				for (Space space : spaces) {
 					if (spaceIds.length() > 0) {
 						spaceIds.append(",");
@@ -57,7 +57,7 @@ public class NotificationService extends BaseService<Notification> {
 
 		if (spaces.size() > 0) {
 			StringBuilder spaceIds = new StringBuilder();
-			if (spaceId.isEmpty()) {
+			if (spaceId != null && spaceId.isEmpty()) {
 				for (Space space : spaces) {
 					if (spaceIds.length() > 0) {
 						spaceIds.append(",");

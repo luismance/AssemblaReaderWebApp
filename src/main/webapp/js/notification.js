@@ -5,12 +5,15 @@ class NotificationList extends React.Component{
       notifications : [],
       perPage : 10,
       currPage : 1,
-      totalNotifCount : 0
+      totalNotifCount : 0,
+      violationType : "",
+      notificationsToExport : []
     }
 
     this.componentDidMount = this.componentDidMount.bind(this);
     this.setPerPage = this.setPerPage.bind(this);
     this.setPage = this.setPage.bind(this);
+    this.exportNotifications = this.exportNotifications.bind(this);
   }
 
   componentDidMount(){
@@ -32,7 +35,7 @@ class NotificationList extends React.Component{
 
     $.ajax({
       type: "GET",
-      url: "rest/notification/list?per_page=" + thisComp.state.perPage + "&page=" + thisComp.state.currPage+"&spaceid=" + thisComp.props.spaceId,
+      url: "rest/notification/list?per_page=" + thisComp.state.perPage + "&page=" + thisComp.state.currPage+"&spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
@@ -60,7 +63,7 @@ class NotificationList extends React.Component{
 
     $.ajax({
       type: "GET",
-      url: "rest/notification/count?spaceid=" + thisComp.props.spaceId,
+      url: "rest/notification/count?spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
@@ -88,6 +91,51 @@ class NotificationList extends React.Component{
     this.setState({
       currPage : pageDirection
     }, () => this.callNotificationList());
+  }
+
+  setViolation(violationType){
+    console.log("Set Violation : " + violationType);
+    this.setState({
+      violationType
+    }, () => this.callNotificationList());
+  }
+
+  addToExport(notificationId){
+    console.log("Notification ID : " + notificationId);
+    var currentNotifToExport = this.state.notificationsToExport;
+    currentNotifToExport.push(notificationId);
+
+    this.setState({
+      notificationsToExport : currentNotifToExport
+    });
+  }
+
+  exportNotifications(){
+    var thisComp = this;
+    var userItem = JSON.parse(localStorage.getItem("userData"));
+    var x2js = new X2JS();
+
+    console.log("Exporting notifications");
+    $.ajax({
+      type: "GET",
+      url: "rest/notification/export?spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType,
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      dataType: "text",
+      success : function(data) {
+        console.log("CSV Data : " + data);
+        var hiddenElement = document.createElement('a');
+        hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(data);
+        hiddenElement.target = '_blank';
+        hiddenElement.download = 'notifications.csv';
+        hiddenElement.click();
+      },
+      error: function(data) {
+        console.log("Error : " + JSON.stringify(data));
+      }
+    });
   }
 
   render(){
@@ -157,24 +205,47 @@ class NotificationList extends React.Component{
           <ul className="nav nav-tabs">
             <li className="nav-item"><a className="nav-link active"><h6>Notifications({this.state.totalNotifCount})</h6></a></li>
           </ul>
-          <button className="btn btn-secondary dropdown-toggle" type="button" id="notifDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ marginTop: "10px" }}>
-            Notifications per page
-          </button>
-          <div className="dropdown-menu" aria-labelledby="notifDropDown">
-            <a className="dropdown-item" onClick={() => this.setPerPage(10)}>
-              10
-            </a>
-            <a className="dropdown-item" onClick={() => this.setPerPage(15)}>
-              15
-            </a>
-            <a className="dropdown-item" onClick={() => this.setPerPage(20)}>
-              20
-            </a>
+          <div class="row">
+            <div class="col-4">
+              <button className="btn btn-secondary dropdown-toggle" type="button" id="notifDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ marginTop: "10px" }}>
+                Notifications per page ({this.state.perPage})
+              </button>
+              <div className="dropdown-menu" aria-labelledby="notifDropDown">
+                <a className="dropdown-item" onClick={() => this.setPerPage(10)}>
+                  10
+                </a>
+                <a className="dropdown-item" onClick={() => this.setPerPage(15)}>
+                  15
+                </a>
+                <a className="dropdown-item" onClick={() => this.setPerPage(20)}>
+                  20
+                </a>
+              </div>
+            </div>
+            <div class="col-4">
+              <button className="btn btn-secondary" type="button" id="exportCsv" onClick={this.exportNotifications} style={{ marginLeft: "10px", marginTop: "10px" }}>
+                Export as CSV
+              </button>
+            </div>
+            <div class="col-1">
+              <button className="btn btn-secondary dropdown-toggle" type="button" id="notifDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ marginTop: "10px" }}>
+                Violation Type ({this.state.violationType})
+              </button>
+              <div className="dropdown-menu" aria-labelledby="notifDropDown">
+                <a className="dropdown-item" onClick={() => this.setViolation("")}>
+                  All
+                </a>
+                <a className="dropdown-item" onClick={() => this.setViolation("SLA")}>
+                  SLA
+                </a>
+                <a className="dropdown-item" onClick={() => this.setViolation("Workflow")}>
+                  Workflow
+                </a>
+              </div>
+            </div>
           </div>
           <div>
-            <div>
-              {notificationList}
-            </div>
+            {notificationList}
           </div>
         </div>
         <nav aria-label="Page navigation" style={{ marginTop: "10px" }}>

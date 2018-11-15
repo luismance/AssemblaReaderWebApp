@@ -17,6 +17,10 @@ public class Notification extends BaseModel {
 	private Space space;
 
 	@ManyToOne(optional = false)
+	@JoinColumn(name = "TICKET_ID", nullable = false)
+	private Ticket ticket;
+
+	@ManyToOne(optional = false)
 	@JoinColumn(name = "WORKFLOW_TRANSITION_INSTANCE_ID", nullable = false)
 	private WorkflowTransitionInstance workflowTransitionInstance;
 
@@ -43,6 +47,14 @@ public class Notification extends BaseModel {
 
 	public void setSpace(Space space) {
 		this.space = space;
+	}
+
+	public Ticket getTicket() {
+		return ticket;
+	}
+
+	public void setTicket(Ticket ticket) {
+		this.ticket = ticket;
 	}
 
 	public WorkflowTransitionInstance getWorkflowTransitionInstance() {
