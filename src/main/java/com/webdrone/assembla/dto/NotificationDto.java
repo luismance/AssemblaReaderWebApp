@@ -14,6 +14,8 @@ public class NotificationDto {
 
 	private String violationType;
 
+	private boolean isVerified;
+
 	@XmlElement(name = "id")
 	public String getId() {
 		return Id;
@@ -48,6 +50,15 @@ public class NotificationDto {
 
 	public void setViolationType(String violationType) {
 		this.violationType = violationType;
+	}
+
+	@XmlElement(name = "verified")
+	public boolean isVerified() {
+		return isVerified;
+	}
+
+	public void setVerified(boolean isVerified) {
+		this.isVerified = isVerified;
 	}
 
 }

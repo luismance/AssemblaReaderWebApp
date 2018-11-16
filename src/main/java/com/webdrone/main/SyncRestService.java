@@ -17,6 +17,7 @@ import javax.ws.rs.core.Response;
 
 import com.webdrone.service.UserService;
 import com.webdrone.thread.ProcessTicketChanges;
+import com.webdrone.thread.ProcessTicketChangesThread;
 import com.webdrone.thread.SyncUserDataThread;
 import com.webdrone.util.UserAuthResult;
 
@@ -63,7 +64,7 @@ public class SyncRestService {
 			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
 		}
 
-		ProcessTicketChanges ptc = new ProcessTicketChanges(utx, emf.createEntityManager(), valResult.getUser().getUsername());
+		ProcessTicketChangesThread ptc = new ProcessTicketChangesThread(utx, emf.createEntityManager(), valResult.getUser().getUsername());
 		Thread thread = threadFactory.newThread(ptc);
 		thread.start();
 

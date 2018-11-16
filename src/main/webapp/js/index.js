@@ -151,7 +151,7 @@ class TicketItem extends React.Component {
             </div>
             <div class="col-2">
               {updatedAtDate.toLocaleString("en-US")}
-              {ticketChanges.length === 0 ? "" : <span class="fa fa-chevron-down" />}
+              {ticketChanges.length === 0 ? "" : <span class="oi oi-chevron-bottom" />}
             </div>
           </div>
         </a>
@@ -367,7 +367,7 @@ class SpaceList extends React.Component {
       </li>
     ));
 
-    var totalTicketCountPerPage = this.state.totalTicketCount / this.state.ticketCount;
+    var totalTicketCountPerPage = Math.floor(this.state.totalTicketCount / this.state.ticketCount);
     var maxPage = totalTicketCountPerPage == 0 ? 1 : totalTicketCountPerPage;
     maxPage = totalTicketCountPerPage * this.state.ticketCount == this.state.totalTicketCount || this.state.totalTicketCount < this.state.ticketCount ? maxPage : maxPage + 1;
 

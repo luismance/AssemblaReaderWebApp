@@ -1,9 +1,5 @@
 package com.webdrone.main;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,16 +7,17 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 
 import com.webdrone.assembla.dto.NotificationCountDto;
 import com.webdrone.assembla.dto.NotificationDto;
 import com.webdrone.assembla.dto.NotificationListDto;
+import com.webdrone.assembla.dto.TicketAssemblaDto;
 import com.webdrone.model.Notification;
 import com.webdrone.service.NotificationService;
 import com.webdrone.service.UserService;
@@ -40,7 +37,7 @@ public class NotificationRestService {
 	@GET
 	@Path("/list")
 	public Response getNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("per_page") int notifsPerPage, @QueryParam("page") int page, @QueryParam("spaceid") String spaceId,
-			@QueryParam("violation_type") String violationType) {
+			@QueryParam("violation_type") String violationType, @QueryParam("verify_filter") String verifyFilter) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -51,13 +48,19 @@ public class NotificationRestService {
 		if (violationType == null) {
 			violationType = "";
 		}
-		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), page - 1, notifsPerPage, spaceId, violationType);
+
+		if (verifyFilter == null) {
+			verifyFilter = "";
+		}
+
+		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), page - 1, notifsPerPage, spaceId, violationType, verifyFilter);
 
 		List<NotificationDto> notificationsDto = new ArrayList<NotificationDto>();
 
 		for (Notification notification : notifications) {
 			NotificationDto ndto = new NotificationDto();
 			ndto.setId(notification.getId() + "");
+			ndto.setVerified(notification.isVerified());
 			ndto.setNotificationHeader("Ticket #" + notification.getWorkflowTransitionInstance().getTicket().getTicketNumber());
 			ndto.setNotificationMessage(notification.getMessage().isEmpty() ? notification.getWorkflowTransitionViolated().getErrorMessage() : notification.getMessage());
 			ndto.setViolationType(notification.getViolationType());
@@ -72,7 +75,8 @@ public class NotificationRestService {
 
 	@GET
 	@Path("/count")
-	public Response getNotificationTotalCount(@HeaderParam("Authorization") String authorization, @QueryParam("spaceid") String spaceId, @QueryParam("violation_type") String violationType) {
+	public Response getNotificationTotalCount(@HeaderParam("Authorization") String authorization, @QueryParam("spaceid") String spaceId, @QueryParam("violation_type") String violationType,
+			@QueryParam("verify_filter") String verifyFilter) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -84,14 +88,15 @@ public class NotificationRestService {
 			violationType = "";
 		}
 		NotificationCountDto notificationCountDto = new NotificationCountDto();
-		notificationCountDto.setNotificationCount(notificationService.getNotificationCount(valResult.getUser().getSpaces(), spaceId, violationType));
+		notificationCountDto.setNotificationCount(notificationService.getNotificationCount(valResult.getUser().getSpaces(), spaceId, violationType, verifyFilter));
 		return Response.status(200).entity(notificationCountDto).build();
 
 	}
 
 	@GET
 	@Path("/export")
-	public Response exportNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("spaceid") String spaceId, @QueryParam("violation_type") String violationType) {
+	public Response exportNotifications(@HeaderParam("Authorization") String authorization, @QueryParam("spaceid") String spaceId, @QueryParam("violation_type") String violationType,
+			@QueryParam("verify_filter") String verifyFilter) {
 
 		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
 
@@ -102,7 +107,7 @@ public class NotificationRestService {
 		if (violationType == null) {
 			violationType = "";
 		}
-		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), -1, 0, spaceId, violationType);
+		List<Notification> notifications = notificationService.getNotifications(valResult.getUser().getSpaces(), -1, 0, spaceId, violationType, verifyFilter);
 
 		String[] priorityLabel = { "Highest", "High", "Normal", "Low", "Lowest" };
 
@@ -118,5 +123,43 @@ public class NotificationRestService {
 		}
 
 		return Response.status(200).entity(sb.toString()).build();
+	}
+
+	@POST
+	@Path("/verify")
+	public Response verifyNotification(@HeaderParam("Authorization") String authorization, @QueryParam("notification_id") String notificationId) {
+
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		Notification notification = (Notification) notificationService.find(Notification.class, Long.parseLong(notificationId));
+		if (notification.isVerified()) {
+			notification.setVerified(false);
+		} else {
+			notification.setVerified(true);
+		}
+
+		notificationService.update(notification);
+
+		return Response.status(200).entity("SUCCESS").build();
+	}
+
+	@GET
+	@Path("/details")
+	public Response loadNotification(@HeaderParam("Authorization") String authorization, @QueryParam("notification_id") String notificationId) {
+
+		UserAuthResult valResult = userService.validateUserAuthorization(authorization);
+
+		if (valResult.getResponseCode() != 200) {
+			return Response.status(valResult.getResponseCode()).entity(valResult.getResponseMessage()).build();
+		}
+
+		Notification notification = (Notification) notificationService.find(Notification.class, Long.parseLong(notificationId));
+
+		TicketAssemblaDto dto = notification.getTicket().toDto();
+		return Response.status(200).entity(dto).build();
 	}
 }

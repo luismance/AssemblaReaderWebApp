@@ -35,7 +35,7 @@ public class Notification extends BaseModel {
 	private String violationType;
 
 	@Column(name = "IS_VERIFIED")
-	private boolean isVerified = false;
+	private boolean verified = false;
 
 	public Notification() {
 		super();
@@ -90,11 +90,11 @@ public class Notification extends BaseModel {
 	}
 
 	public boolean isVerified() {
-		return isVerified;
+		return verified;
 	}
 
-	public void setVerified(boolean isVerified) {
-		this.isVerified = isVerified;
+	public void setVerified(boolean verified) {
+		this.verified = verified;
 	}
 
 }

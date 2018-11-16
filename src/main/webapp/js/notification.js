@@ -7,13 +7,14 @@ class NotificationList extends React.Component{
       currPage : 1,
       totalNotifCount : 0,
       violationType : "",
-      notificationsToExport : []
+      notificationsToExport : [],
+      verifyFilter : "",
+      modalDetails : null
     }
 
     this.componentDidMount = this.componentDidMount.bind(this);
     this.setPerPage = this.setPerPage.bind(this);
     this.setPage = this.setPage.bind(this);
-    this.exportNotifications = this.exportNotifications.bind(this);
   }
 
   componentDidMount(){
@@ -35,7 +36,7 @@ class NotificationList extends React.Component{
 
     $.ajax({
       type: "GET",
-      url: "rest/notification/list?per_page=" + thisComp.state.perPage + "&page=" + thisComp.state.currPage+"&spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType,
+      url: "rest/notification/list?per_page=" + thisComp.state.perPage + "&page=" + thisComp.state.currPage+"&spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType+"&verify_filter=" + thisComp.state.verifyFilter,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
@@ -63,7 +64,7 @@ class NotificationList extends React.Component{
 
     $.ajax({
       type: "GET",
-      url: "rest/notification/count?spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType,
+      url: "rest/notification/count?spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType+"&verify_filter=" + thisComp.state.verifyFilter,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
@@ -79,6 +80,7 @@ class NotificationList extends React.Component{
       }
     });
   }
+
   setPerPage(changePerPage){
     console.log("Set Per Page : " + changePerPage);
     this.setState({
@@ -100,6 +102,13 @@ class NotificationList extends React.Component{
     }, () => this.callNotificationList());
   }
 
+  setVerifyFilter(verifyFilter){
+    console.log("Set Verify Filter : " + verifyFilter);
+    this.setState({
+      verifyFilter
+    }, () => this.callNotificationList());
+  }
+
   addToExport(notificationId){
     console.log("Notification ID : " + notificationId);
     var currentNotifToExport = this.state.notificationsToExport;
@@ -118,14 +127,13 @@ class NotificationList extends React.Component{
     console.log("Exporting notifications");
     $.ajax({
       type: "GET",
-      url: "rest/notification/export?spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType,
+      url: "rest/notification/export?spaceid=" + thisComp.props.spaceId+"&violation_type=" + thisComp.state.violationType+"&verify_filter=" + thisComp.state.verifyFilter,
       headers: {
         "Content-Type": "application/xml",
         Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
       },
       dataType: "text",
       success : function(data) {
-        console.log("CSV Data : " + data);
         var hiddenElement = document.createElement('a');
         hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(data);
         hiddenElement.target = '_blank';
@@ -138,18 +146,84 @@ class NotificationList extends React.Component{
     });
   }
 
+  verifyNotification(notificationId){
+    var thisComp = this;
+    var userItem = JSON.parse(localStorage.getItem("userData"));
+    var x2js = new X2JS();
+
+    console.log("verifyNotification");
+    $.ajax({
+      type: "POST",
+      url: "rest/notification/verify?notification_id=" + notificationId,
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      dataType: "text",
+      success : function(data) {
+        console.log("verifyNotification success");
+        thisComp.callNotificationList();
+      },
+      error: function(data) {
+        console.log("Error : " + JSON.stringify(data));
+      }
+    });
+  }
+
+  loadNotification(notificationId){
+    var thisComp = this;
+    var userItem = JSON.parse(localStorage.getItem("userData"));
+    var x2js = new X2JS();
+
+    console.log("loadNotification");
+    $.ajax({
+      type: "GET",
+      url: "rest/notification/details?notification_id=" + notificationId,
+      headers: {
+        "Content-Type": "application/xml",
+        Authorization: "Basic " + Base64.encode(userItem.user.username + ":" + userItem.user.password)
+      },
+      dataType: "text",
+      success : function(data) {
+        console.log("loadNotification success");
+        var ticketJson = x2js.xml_str2json(data);
+        var ticketObj = ticketJson.ticket;
+        thisComp.setState({
+          modalDetails : ticketObj
+        });
+      },
+      error: function(data) {
+        console.log("Error : " + JSON.stringify(data));
+      }
+    });
+  }
+
   render(){
     var notificationList = this.state.notifications.map((notification, i) =>(
-      <div class="card bg-info text-white" style={{ marginTop: "5px", marginRight : "5px"}}>
+      <div class={notification.verified == "true" ? "card bg-light mb-3" : "card bg-info text-white"  } style={{ marginTop: "5px", marginRight : "5px"}} >
         <div class="card-body">
           <div class="row">
-            <div class="col-2">
+            <div class="col">
+            <button className="btn btn-secondary" type="button" data-toggle="modal" data-target="#ticketDetailsModal" onClick={() => this.loadNotification(notification.id)}>
+              <span class="oi oi-magnifying-glass"></span>
+            </button>
+            {
+              notification.verified == "true"
+              ? (<button className="btn btn-secondary" type="button" id="verifyNotification" onClick={() => this.verifyNotification(notification.id)} style={{ marginLeft: "10px", marginTop: "10px" }}>
+                  <span class="oi oi-circle-x"></span>
+                </button>)
+              : (<button className="btn btn-secondary" type="button" id="verifyNotification" onClick={() => this.verifyNotification(notification.id)} style={{ marginLeft: "10px", marginTop: "10px" }}>
+                  <span class="oi oi-circle-check"></span>
+                </button>)
+            }
+            </div>
+            <div class="col">
               <b>{notification.header}</b>
             </div>
             <div class="col">
               {notification.message}
             </div>
-            <div class="col-2">
+            <div class="col">
               {notification["violation-type"]}
             </div>
           </div>
@@ -199,6 +273,13 @@ class NotificationList extends React.Component{
         </li>
       );
 
+    var priorityLabel = new Map();
+    priorityLabel.set(1, "Highest");
+    priorityLabel.set(2, "High");
+    priorityLabel.set(3, "Normal");
+    priorityLabel.set(4, "Low");
+    priorityLabel.set(5, "Lowest");
+
     return (
       <div class="col-md-4">
         <div>
@@ -206,7 +287,7 @@ class NotificationList extends React.Component{
             <li className="nav-item"><a className="nav-link active"><h6>Notifications({this.state.totalNotifCount})</h6></a></li>
           </ul>
           <div class="row">
-            <div class="col-4">
+            <div class="col">
               <button className="btn btn-secondary dropdown-toggle" type="button" id="notifDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ marginTop: "10px" }}>
                 Notifications per page ({this.state.perPage})
               </button>
@@ -222,12 +303,30 @@ class NotificationList extends React.Component{
                 </a>
               </div>
             </div>
-            <div class="col-4">
-              <button className="btn btn-secondary" type="button" id="exportCsv" onClick={this.exportNotifications} style={{ marginLeft: "10px", marginTop: "10px" }}>
+            <div class="col">
+              <button className="btn btn-secondary" type="button" id="exportCsv" onClick={this.exportNotifications.bind(this)} style={{ marginLeft: "10px", marginTop: "10px" }}>
                 Export as CSV
               </button>
             </div>
-            <div class="col-1">
+          </div>
+          <div class="row">
+            <div class="col">
+              <button className="btn btn-secondary dropdown-toggle" type="button" id="verifyDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ marginTop: "10px" }}>
+                Verify Filter ({this.state.verifyFilter})
+              </button>
+              <div className="dropdown-menu" aria-labelledby="verifyDropdown">
+                <a className="dropdown-item" onClick={() => this.setVerifyFilter("")}>
+                  All
+                </a>
+                <a className="dropdown-item" onClick={() => this.setVerifyFilter("verified")}>
+                  Verified
+                </a>
+                <a className="dropdown-item" onClick={() => this.setVerifyFilter("not_verified")}>
+                  Not Verified
+                </a>
+              </div>
+            </div>
+            <div class="col">
               <button className="btn btn-secondary dropdown-toggle" type="button" id="notifDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ marginTop: "10px" }}>
                 Violation Type ({this.state.violationType})
               </button>
@@ -267,6 +366,30 @@ class NotificationList extends React.Component{
             </li>
           </ul>
         </nav>
+        <div class="modal" id="ticketDetailsModal">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h4 class="modal-title">Ticket #{this.state.modalDetails != null ? this.state.modalDetails.number : ""}</h4>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div class="row">
+                  Description : {this.state.modalDetails != null ? this.state.modalDetails.description : ""}
+                </div>
+                <div class="row">
+                  Summary : {this.state.modalDetails != null ? this.state.modalDetails.summary : ""}
+                </div>
+                <div class="row">
+                  Priority : {this.state.modalDetails != null ? priorityLabel.get(this.state.modalDetails.priority) : ""}
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

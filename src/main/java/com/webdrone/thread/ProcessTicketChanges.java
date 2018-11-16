@@ -34,32 +34,17 @@ import com.webdrone.util.ExpressionLanguageUtils;
 import com.webdrone.util.RESTServiceUtil;
 
 @Stateless
-public class ProcessTicketChanges implements Runnable {
-
-	private UserService userService;
-
-	private String username;
-
-	private EntityManager entityManager;
-
-	private UserTransaction utx;
+public class ProcessTicketChanges {
 
 	public ProcessTicketChanges() {
-
 	}
 
-	public ProcessTicketChanges(UserTransaction utx, EntityManager em, String username) {
-		this.username = username;
-		this.entityManager = em;
-		this.utx = utx;
-	}
-
-	public void run() {
+	public static void processTicketChanges(UserTransaction utx, EntityManager entityManager, String username) {
 
 		try {
 			System.out.println("Starting Ticket Changes Processing");
 
-			userService = new UserService();
+			UserService userService = new UserService();
 			TicketService ticketService = new TicketService();
 			WorkflowTransitionService workflowTransitionService = new WorkflowTransitionService();
 			WorkflowTransitionInstanceService workflowTransitionInstanceService = new WorkflowTransitionInstanceService();
@@ -80,7 +65,7 @@ public class ProcessTicketChanges implements Runnable {
 
 						TicketChangesListDto ticketChangesList = new TicketChangesListDto();
 
-						String ticketChangesXml = sendRequest(currentUser,
+						String ticketChangesXml = sendRequest(userService, entityManager, utx, currentUser,
 								"https://api.assembla.com/v1/spaces/" + space.getExternalRefId() + "/tickets/" + ticket.getTicketNumber() + "/ticket_comments.xml?per_page=100", true,
 								"Bearer " + currentUser.getBearerToken());
 
@@ -137,9 +122,10 @@ public class ProcessTicketChanges implements Runnable {
 										String notifMessage = "";
 										if (workflowTransitions.size() > 0) {
 											currentWorkflowIndex = 0;
-											for (WorkflowTransition wt : workflowTransitions) {
+											ExpressionLanguageResultEnum evalResult = ExpressionLanguageResultEnum.COMPLETE_FALSE;
+											for (int wtIndex = 0; wtIndex < workflowTransitions.size(); wtIndex++) {
 
-												wti.setWorkflowTransition(wt);
+												wti.setWorkflowTransition(workflowTransitions.get(wtIndex));
 
 												/* DATE VALUE PROCESSING START */
 												if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
@@ -153,17 +139,14 @@ public class ProcessTicketChanges implements Runnable {
 												}
 
 												if (fieldMap.containsKey("new_updated_at")) {
-													fieldMap.replace("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+													fieldMap.replace("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
 												} else {
-													fieldMap.put("new_updated_at", ticketChanges.getUpdatedAt().toDate().getTime() + "");
+													fieldMap.put("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
 												}
 
 												/* DATE VALUE PROCESSING START */
 
 												if (fieldMap.containsKey("old_" + fieldName) && fieldMap.containsKey("old_" + fieldName)) {
-													fieldMap = new HashMap<String, String>();
-													fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-													fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
 													wti.setHasViolation(true);
 													notifMessage = "A property was not set or a step was skipped!";
 													break;
@@ -171,16 +154,16 @@ public class ProcessTicketChanges implements Runnable {
 													fieldMap.put("old_" + fieldName, previousValue);
 													fieldMap.put("new_" + fieldName, newValue);
 
-													ExpressionLanguageResultEnum evalResult = ExpressionLanguageUtils.evaluate(fieldMap, wt.getExpressionLanguage());
+													evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(wtIndex).getExpressionLanguage());
 													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
 														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
 														wti.setHasViolation(true);
 														fieldMap = new HashMap<String, String>();
 														fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
 														fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-														workflowTransitions = wt.getWorkflowTransitions();
-														notifMessage = wt.getErrorMessage();
-														// wtIndex = 0;
+														fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
+														workflowTransitions = workflowTransitions.get(wtIndex).getWorkflowTransitions();
+														wtIndex = 0;
 														if (workflowTransitions.size() == 0) {
 															break;
 														}
@@ -190,16 +173,16 @@ public class ProcessTicketChanges implements Runnable {
 														fieldMap = new HashMap<String, String>();
 														fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
 														fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-														workflowTransitions = wt.getWorkflowTransitions();
-														notifMessage = wt.getErrorMessage();
-														// wtIndex = 0;
+														fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
+														workflowTransitions = workflowTransitions.get(wtIndex).getWorkflowTransitions();
+														wtIndex = 0;
 														if (workflowTransitions.size() == 0) {
 															break;
 														}
 													}
 												}
 
-												currentWorkflowIndex++;
+												currentWorkflowIndex = wtIndex;
 											}
 
 										} else {
@@ -218,6 +201,7 @@ public class ProcessTicketChanges implements Runnable {
 											if (wti.isHasViolation()) {
 												Notification notification = new Notification();
 												notification.setSpace(space);
+												notification.setTicket(ticket);
 												notification.setMessage(notifMessage);
 												notification.setWorkflowTransitionInstance(wti);
 												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
@@ -253,8 +237,11 @@ public class ProcessTicketChanges implements Runnable {
 
 											if (wti.isHasViolation()) {
 												Notification notification = new Notification();
+												notification.setSpace(space);
+												notification.setTicket(ticket);
 												notification.setWorkflowTransitionInstance(wti);
 												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
+												notification.setViolationType(wti.getWorkflowTransition().getViolationType());
 												notificationService.threadCreate(utx, entityManager, notification);
 											}
 										} else {
@@ -275,6 +262,7 @@ public class ProcessTicketChanges implements Runnable {
 			currentUser.setSyncStatus("Ready to start");
 			userService.threadUpdate(utx, entityManager, currentUser);
 		} catch (Exception e) {
+			UserService userService = new UserService();
 			User currentUser = userService.findUserByUsername(entityManager, username);
 			currentUser.setSyncStatus("An error occured while trying to sync");
 			try {
@@ -287,7 +275,7 @@ public class ProcessTicketChanges implements Runnable {
 
 	}
 
-	private String sendRequest(User currentUser, String url, boolean requireAuthorization, String authorization)
+	private static String sendRequest(UserService userService, EntityManager entityManager, UserTransaction utx, User currentUser, String url, boolean requireAuthorization, String authorization)
 			throws SecurityException, IllegalStateException, NotSupportedException, SystemException, RollbackException, HeuristicMixedException, HeuristicRollbackException {
 		String sendReq = RESTServiceUtil.sendGET(url, requireAuthorization, authorization);
 
