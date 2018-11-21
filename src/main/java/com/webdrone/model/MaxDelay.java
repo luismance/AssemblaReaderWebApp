@@ -10,6 +10,9 @@ public class MaxDelay extends BaseModel {
 
 	private static final long serialVersionUID = 1L;
 
+	@Column(name = "PRIORITY_TYPE_ID", nullable = false)
+	private String priorityTypeId;
+
 	@Column(name = "EXPRESSION_LANGUAGE", columnDefinition = "TEXT", nullable = false)
 	private String expressionLanguage;
 
@@ -18,6 +21,14 @@ public class MaxDelay extends BaseModel {
 
 	public MaxDelay() {
 		super();
+	}
+
+	public String getPriorityTypeId() {
+		return priorityTypeId;
+	}
+
+	public void setPriorityTypeId(String priorityTypeId) {
+		this.priorityTypeId = priorityTypeId;
 	}
 
 	public String getExpressionLanguage() {

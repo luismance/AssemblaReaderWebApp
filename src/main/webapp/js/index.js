@@ -95,6 +95,7 @@ class TicketItem extends React.Component {
         return "";
       } else {
         var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
+        var ticketChangesHtml=document.createElement("p");
         var finalTicketChanges="";
         var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
         for (var i = 1; i < formattedTicketChangesArray.length; i++) {
@@ -108,9 +109,10 @@ class TicketItem extends React.Component {
           }
         }
 
+        var updatedAtDate = new Date(ticketChange["updated-at"]);
         return (
           <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")} style={{ marginLeft: "25px"  }}>
-            {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>
+            {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>{updatedAtDate.toLocaleString("en-US")}
           </a>
         );
       }
@@ -143,8 +145,11 @@ class TicketItem extends React.Component {
               #{this.props.number}
               {this.props.ticketType || this.props.ticketType != null ? "[" + this.props.ticketType + "]" : ""}
             </div>
-            <div class="col-8">
+            <div class="col-4">
               {this.props.summary}
+            </div>
+            <div class="col-3">
+              {this.props.ticketObj["custom-fields"].type}
             </div>
             <div class="col-1">
               {priorityMessage}
@@ -257,16 +262,11 @@ class SpaceList extends React.Component {
     }, () => this.updateTickets());
   }
 
-  filterViolation(violationType){
-    console.log("violation filter : " + violationType);
-    this.setState({
-      violationFilter : violationType,
-      currentPage : 1
-    }, () => this.updateTickets());
-  }
-
   filterPriority(priorityLevel){
     console.log("priority filter : " + priorityLevel);
+    if(priorityLevel == 0){
+      priorityLevel = "";
+    }
     this.setState({
       priorityFilter : priorityLevel,
       currentPage : 1
@@ -289,6 +289,9 @@ class SpaceList extends React.Component {
   }
 
   updateTickets() {
+
+    $("[aria-expanded=true]").click();
+
     var thisComp = this;
     var userData = localStorage.getItem("userData");
     var userItem = JSON.parse(userData);
@@ -446,22 +449,6 @@ class SpaceList extends React.Component {
             </a>
             <a className="dropdown-item" onClick={() => this.sortTickets("priority")}>
               Priority
-            </a>
-          </div>
-        </div>
-        <div className="dropdown"  style={{ marginLeft: "10px"}}>
-          <button className="btn btn-secondary dropdown-toggle" type="button" id="ddViolationType" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Violation Type({this.state.violationFilter})
-          </button>
-          <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
-            <a className="dropdown-item" onClick={() => this.filterViolation("all")}>
-              All
-            </a>
-            <a className="dropdown-item" onClick={() => this.filterViolation("workflow")}>
-              Workflow
-            </a>
-            <a className="dropdown-item" onClick={() => this.filterViolation("sla")}>
-              SLA
             </a>
           </div>
         </div>

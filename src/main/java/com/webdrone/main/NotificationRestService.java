@@ -11,16 +11,23 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import org.joda.time.DateTime;
 
 import com.webdrone.assembla.dto.NotificationCountDto;
 import com.webdrone.assembla.dto.NotificationDto;
 import com.webdrone.assembla.dto.NotificationListDto;
-import com.webdrone.assembla.dto.TicketAssemblaDto;
+import com.webdrone.assembla.dto.NotificationTicketChangeDto;
+import com.webdrone.assembla.dto.NotificationTicketChangesListDto;
+import com.webdrone.assembla.dto.NotificationTicketDto;
 import com.webdrone.model.Notification;
+import com.webdrone.model.WorkflowTransitionInstance;
 import com.webdrone.service.NotificationService;
 import com.webdrone.service.UserService;
+import com.webdrone.service.WorkflowTransitionInstanceService;
 import com.webdrone.util.UserAuthResult;
 
 @Path("/notification")
@@ -33,6 +40,9 @@ public class NotificationRestService {
 
 	@Inject
 	private NotificationService notificationService;
+
+	@Inject
+	private WorkflowTransitionInstanceService wtiService;
 
 	@GET
 	@Path("/list")
@@ -159,7 +169,33 @@ public class NotificationRestService {
 
 		Notification notification = (Notification) notificationService.find(Notification.class, Long.parseLong(notificationId));
 
-		TicketAssemblaDto dto = notification.getTicket().toDto();
+		List<WorkflowTransitionInstance> wtiList = wtiService.getWorkflowTransitionInstanceBySpaceAndTicket(notification.getSpace().getExternalRefId(),
+				notification.getTicket().getTicketNumber() + "");
+		NotificationTicketDto dto = new NotificationTicketDto();
+		dto.setDescription(notification.getTicket().getDescription());
+		dto.setPriority(notification.getTicket().getPriorityTypeId());
+		dto.setSummary(notification.getTicket().getSummary());
+		dto.setNumber(notification.getTicket().getTicketNumber());
+		List<NotificationTicketChangeDto> notificationListDto = new ArrayList<NotificationTicketChangeDto>();
+
+		for (WorkflowTransitionInstance wti : wtiList) {
+			NotificationTicketChangeDto ntcd = new NotificationTicketChangeDto();
+			ntcd.setFieldName(wti.getOriginState().split(":")[0]);
+			ntcd.setOriginState(wti.getOriginState().split(":")[1]);
+			ntcd.setTargetState(wti.getTargetState().split(":")[1]);
+			ntcd.setUpdateDateTime(new DateTime(wti.getRemotelyUpdated()));
+
+			Notification notifMessage = notificationService.getByWorkflowTransitionInstance(wti.getId());
+			ntcd.setViolationMessage(notifMessage != null ? notifMessage.getMessage() : "");
+
+			notificationListDto.add(ntcd);
+
+		}
+
+		NotificationTicketChangesListDto ntcl = new NotificationTicketChangesListDto();
+		ntcl.setNotificationListDto(notificationListDto);
+
+		dto.setNotificationTicketChangesList(ntcl);
 		return Response.status(200).entity(dto).build();
 	}
 }

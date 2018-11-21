@@ -7,8 +7,9 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
 @Entity
@@ -30,14 +31,24 @@ public class WorkflowTransition extends BaseModel {
 	@Column(name = "ERROR_MESSAGE", length = 255, nullable = false)
 	private String errorMessage;
 
-	@OneToMany(fetch = FetchType.EAGER)
+	@ManyToMany(fetch = FetchType.EAGER)
+	@JoinTable(name = "workflow_transition_parent_link", joinColumns = @JoinColumn(name = "workflow_transition_id"), inverseJoinColumns = @JoinColumn(name = "parent_workflow_transition_id"))
 	private List<WorkflowTransition> workflowTransitions = new ArrayList<WorkflowTransition>();
+
+	@ManyToMany(mappedBy = "workflowTransitions")
+	private List<WorkflowTransition> parentWorkflowTransitions = new ArrayList<WorkflowTransition>();
 
 	@Column(name = "IS_START")
 	private boolean isFirstStep = false;
 
 	@Column(name = "VIOLATION_TYPE")
 	private String violationType;
+
+	@Column(name = "MAX_DELAY")
+	private long maxDelay;
+
+	@Column(name = "PRIORITY_TYPE_ID")
+	private int priorityTypeId;
 
 	public WorkflowTransition() {
 		super();
@@ -83,6 +94,14 @@ public class WorkflowTransition extends BaseModel {
 		this.workflowTransitions = workflowTransitions;
 	}
 
+	public List<WorkflowTransition> getParentWorkflowTransitions() {
+		return parentWorkflowTransitions;
+	}
+
+	public void setParentWorkflowTransitions(List<WorkflowTransition> parentWorkflowTransitions) {
+		this.parentWorkflowTransitions = parentWorkflowTransitions;
+	}
+
 	public boolean isFirstStep() {
 		return isFirstStep;
 	}
@@ -97,6 +116,22 @@ public class WorkflowTransition extends BaseModel {
 
 	public void setViolationType(String violationType) {
 		this.violationType = violationType;
+	}
+
+	public long getMaxDelay() {
+		return maxDelay;
+	}
+
+	public void setMaxDelay(long maxDelay) {
+		this.maxDelay = maxDelay;
+	}
+
+	public int getPriorityTypeId() {
+		return priorityTypeId;
+	}
+
+	public void setPriorityTypeId(int priorityTypeId) {
+		this.priorityTypeId = priorityTypeId;
 	}
 
 }

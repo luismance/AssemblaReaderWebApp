@@ -2,9 +2,11 @@ package com.webdrone.thread;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.ejb.Stateless;
@@ -15,6 +17,8 @@ import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
+
+import org.joda.time.DateTime;
 
 import com.webdrone.assembla.dto.TicketChangesDto;
 import com.webdrone.assembla.dto.TicketChangesListDto;
@@ -54,7 +58,8 @@ public class ProcessTicketChanges {
 
 			// RETRIEVE TICKET COMMENTS
 
-			for (Space space : currentUser.getSpaces()) {
+			List<Space> spaceList = new ArrayList<Space>(currentUser.getSpaces());
+			for (Space space : spaceList) {
 
 				if (space.isCanProcessTicketChanges()) {
 					List<Ticket> ticketList = ticketService.getTicketsBySpace(entityManager, space.getExternalRefId(), -1, 0, "", "", "");
@@ -80,37 +85,36 @@ public class ProcessTicketChanges {
 							for (int i = newTicketChangesList.size() - 1; i >= 0; i--) {
 								ticketChangesReversed.add(newTicketChangesList.get(i));
 							}
-							List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null ? workflowTransitionService.getStartingWorkflowTransitions(entityManager, ticket.getWorkflow())
+							List<WorkflowTransition> workflowTransitions = ticket.getWorkflow() != null
+									? workflowTransitionService.getStartingWorkflowTransitions(entityManager, ticket.getWorkflow(), ticket.getPriorityTypeId())
 									: new ArrayList<WorkflowTransition>();
 
 							Map<String, String> fieldMap = new HashMap<String, String>();
-							fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
+							fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() / 6000 + "");
 							fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
 
 							int currentWorkflowIndex = 0;
+
+							long lastDateUpdate = ticket.getDateCreated().getTime();
+							String violationType = "";
+							System.out.println("Processing " + ticket.getTicketNumber());
 							for (TicketChangesDto ticketChanges : ticketChangesReversed) {
 								if (ticketChanges.getTicketChanges().contains("- - ")) {
 									String[] fields = ticketChanges.getTicketChanges().replace("---\n", "").split("- - ");
 
-									StringBuilder originState = new StringBuilder();
-									StringBuilder targetState = new StringBuilder();
-
-									System.out.println("Processing " + ticket.getTicketNumber());
 									for (int i = 1; i < fields.length; i++) {
 										String[] fieldArray = fields[i].split("  - ");
 										String fieldName = fieldArray[0].replace("- - ", "").replace("\n", "");
 										String previousValue = fieldArray[1].replace("\n", "");
 										String newValue = fieldArray[2].replace("\n", "").isEmpty() ? "''" : fieldArray[2].replace("\n", "");
 
+										StringBuilder originState = new StringBuilder();
+										StringBuilder targetState = new StringBuilder();
+
 										originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
 										targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
 
-										WorkflowTransitionInstance wti = (WorkflowTransitionInstance) workflowTransitionInstanceService.findByExternalRefId(entityManager,
-												WorkflowTransitionInstance.class, ticketChanges.getId());
-
-										if (wti == null) {
-											wti = new WorkflowTransitionInstance();
-										}
+										WorkflowTransitionInstance wti = new WorkflowTransitionInstance();
 
 										wti.setExternalRefId(ticketChanges.getId());
 										wti.setMessage(ticketChanges.getComment());
@@ -120,69 +124,107 @@ public class ProcessTicketChanges {
 										wti.setRemotelyUpdated(ticketChanges.getUpdatedAt() != null ? ticketChanges.getUpdatedAt().toDate() : null);
 
 										String notifMessage = "";
+
 										if (workflowTransitions.size() > 0) {
+
 											currentWorkflowIndex = 0;
-											ExpressionLanguageResultEnum evalResult = ExpressionLanguageResultEnum.COMPLETE_FALSE;
+
+											ExpressionLanguageResultEnum evalResult = null;
+											int correctIndex = -1;
+											int wrongCounter = 0;
 											for (int wtIndex = 0; wtIndex < workflowTransitions.size(); wtIndex++) {
 
+												String expressionLanguage = workflowTransitions.get(wtIndex).getExpressionLanguage();
 												wti.setWorkflowTransition(workflowTransitions.get(wtIndex));
 
-												/* DATE VALUE PROCESSING START */
-												if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
-													SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-													previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime()) + "";
-												}
+												if (expressionLanguage.contains(fieldName)) {
 
-												if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
-													SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-													newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
-												}
+													System.out.println("[" + fieldName + ":" + previousValue.toLowerCase() + "=>" + newValue.toLowerCase() + "] Current WT : "
+															+ workflowTransitions.get(wtIndex).getExpressionLanguage());
 
-												if (fieldMap.containsKey("new_updated_at")) {
-													fieldMap.replace("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
-												} else {
-													fieldMap.put("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
-												}
+													/* DATE VALUE PROCESSING START */
+													if (previousValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+														SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+														previousValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(previousValue).getTime()) + "";
+													}
 
-												/* DATE VALUE PROCESSING START */
+													if (newValue.matches("\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d\\:\\d\\d\\:\\d\\dZ")) {
+														SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+														newValue = TimeUnit.MILLISECONDS.toMinutes(sdf.parse(newValue).getTime()) + "";
+													}
 
-												if (fieldMap.containsKey("old_" + fieldName) && fieldMap.containsKey("old_" + fieldName)) {
-													wti.setHasViolation(true);
-													notifMessage = "A property was not set or a step was skipped!";
-													break;
-												} else {
-													fieldMap.put("old_" + fieldName, previousValue);
-													fieldMap.put("new_" + fieldName, newValue);
+													if (fieldMap.containsKey("new_updated_at")) {
+														fieldMap.replace("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
+													} else {
+														fieldMap.put("new_updated_at", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
+													}
+
+													/* DATE VALUE PROCESSING START */
+
+													if (!fieldMap.containsKey("old_" + fieldName) && !fieldMap.containsKey("new_" + fieldName)) {
+														fieldMap.put("old_" + fieldName, previousValue.isEmpty() ? "" : previousValue.toLowerCase());
+														fieldMap.put("new_" + fieldName, newValue.toLowerCase());
+													} else {
+														fieldMap.replace("old_" + fieldName, previousValue.isEmpty() ? "" : previousValue.toLowerCase());
+														fieldMap.replace("new_" + fieldName, newValue.toLowerCase());
+													}
 
 													evalResult = ExpressionLanguageUtils.evaluate(fieldMap, workflowTransitions.get(wtIndex).getExpressionLanguage());
-													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_FALSE) {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(true);
-														fieldMap = new HashMap<String, String>();
-														fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-														fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-														fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
-														workflowTransitions = workflowTransitions.get(wtIndex).getWorkflowTransitions();
-														wtIndex = 0;
-														if (workflowTransitions.size() == 0) {
-															break;
-														}
-													} else if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
-														System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
-														wti.setHasViolation(false);
-														fieldMap = new HashMap<String, String>();
-														fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() + "");
-														fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
-														fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 6000) + "");
-														workflowTransitions = workflowTransitions.get(wtIndex).getWorkflowTransitions();
-														wtIndex = 0;
-														if (workflowTransitions.size() == 0) {
-															break;
-														}
+
+													if (evalResult == ExpressionLanguageResultEnum.COMPLETE_TRUE) {
+														correctIndex = wtIndex;
+														break;
+													} else {
+														wrongCounter++;
 													}
+
+													System.out.println("EVAL RESULT : " + evalResult);
+
+												}
+												currentWorkflowIndex = wtIndex;
+											}
+
+											if (correctIndex > -1 && wrongCounter < workflowTransitions.size()) {
+												System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+												wti.setHasViolation(false);
+												wti.setWorkflowTransition(workflowTransitions.get(correctIndex));
+												fieldMap = new HashMap<String, String>();
+												fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() / 60000 + "");
+												fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+												fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 60000) + "");
+
+												long ticketDelay = ((ticketChanges.getUpdatedAt().toDate().getTime() - lastDateUpdate) / 60000) - workflowTransitions.get(correctIndex).getMaxDelay();
+												long monthsDelay = ticketDelay > 43200 ? (ticketDelay / 43200) : 0;
+												long daysDelay = monthsDelay > 0 ? ((ticketDelay - (monthsDelay * 43200)) / 1440) : (ticketDelay > 1440 ? (ticketDelay / 1440) : 0);
+												long hoursDelay = (ticketDelay - ((monthsDelay * 43200) + (daysDelay * 1440))) > 0 ? ((ticketDelay - ((monthsDelay * 43200) + (daysDelay * 1440))) / 60)
+														: 0;
+												long minsDelay = ticketDelay
+														- ((monthsDelay > 0 ? monthsDelay * 43200 : 0) + (daysDelay > 0 ? daysDelay * 1440 : 0) + (hoursDelay > 0 ? hoursDelay * 60 : 0));
+												if (ticketDelay > workflowTransitions.get(correctIndex).getMaxDelay()) {
+													wti.setHasViolation(true);
+													notifMessage = "Delayed by " + (monthsDelay > 0 ? (monthsDelay + " months, ") : "") + (daysDelay > 0 ? (daysDelay + " days, ") : "")
+															+ (hoursDelay > 0 ? (hoursDelay + " hours, ") : "") + minsDelay + " minutes.";
+													System.out.println("Notif Message : " + notifMessage);
+													violationType = "SLA";
 												}
 
-												currentWorkflowIndex = wtIndex;
+												workflowTransitions = workflowTransitions.get(correctIndex).getWorkflowTransitions();
+												lastDateUpdate = ticketChanges.getUpdatedAt().toDate().getTime();
+
+											}
+
+											if (wrongCounter == workflowTransitions.size() && workflowTransitions.size() > 0) {
+												System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
+												wti.setHasViolation(true);
+												wti.setWorkflowTransition(workflowTransitions.get(0));
+												
+												fieldMap = new HashMap<String, String>();
+												fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() / 60000 + "");
+												fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
+												fieldMap.put("last_updated", (ticketChanges.getUpdatedAt().toDate().getTime() / 60000) + "");
+
+												workflowTransitions = workflowTransitions.get(0).getWorkflowTransitions();
+												lastDateUpdate = ticketChanges.getUpdatedAt().toDate().getTime();
 											}
 
 										} else {
@@ -193,23 +235,31 @@ public class ProcessTicketChanges {
 										wti.setOriginState(originState.toString());
 										wti.setTargetState(targetState.toString());
 
-										if (wti.getId() != null) {
-											workflowTransitionInstanceService.threadUpdate(utx, entityManager, wti);
-										} else {
-											workflowTransitionInstanceService.threadCreate(utx, entityManager, wti);
+										workflowTransitionInstanceService.threadCreate(utx, entityManager, wti);
 
-											if (wti.isHasViolation()) {
-												Notification notification = new Notification();
-												notification.setSpace(space);
-												notification.setTicket(ticket);
+										if (wti.isHasViolation()) {
+											Notification notification = new Notification();
+											notification.setSpace(space);
+											notification.setTicket(ticket);
+
+											if (!notifMessage.isEmpty()) {
 												notification.setMessage(notifMessage);
-												notification.setWorkflowTransitionInstance(wti);
-												notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
-												notification.setViolationType(wti.getWorkflowTransition().getViolationType());
-												notificationService.threadCreate(utx, entityManager, notification);
+											} else {
+												notification.setMessage(wti.getWorkflowTransition().getErrorMessage());
 											}
+
+											notification.setWorkflowTransitionInstance(wti);
+											notification.setWorkflowTransitionViolated(wti.getWorkflowTransition());
+											if (violationType.isEmpty()) {
+												notification.setViolationType(wti.getWorkflowTransition().getViolationType());
+											} else {
+												notification.setViolationType(violationType);
+											}
+
+											notificationService.threadCreate(utx, entityManager, notification);
 										}
 									}
+
 								} else {
 
 									if (!ticketChanges.getComment().isEmpty()) {

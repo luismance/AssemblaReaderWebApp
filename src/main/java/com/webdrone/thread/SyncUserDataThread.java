@@ -258,9 +258,6 @@ public class SyncUserDataThread implements Runnable {
 										syncTicket = ticketAssemblaDto.getUpdatedAt().isAfter(latestUpdate.getTime());
 									}
 
-									System.out.println("ticket num : " + ticketAssemblaDto.getNumber() + ", Local Latest : " + (latestUpdate != null ? latestUpdate.getTime() : "null")
-											+ ", Remote Latest : " + ticketAssemblaDto.getUpdatedAt().getMillis() + ", sync ticket : " + syncTicket);
-
 									if (syncTicket) {
 										Object ticketObj = ticketService.findByExternalRefId(entityManager, Ticket.class, ticketAssemblaDto.getId());
 										Ticket currentTicket = ticketObj != null ? (Ticket) ticketObj : null;
@@ -340,7 +337,6 @@ public class SyncUserDataThread implements Runnable {
 										/*
 										 * END : TICKET SYNC
 										 */
-										System.out.println("Page : " + page + ", Ticket List Size : " + ticketListSize);
 									}
 								}
 

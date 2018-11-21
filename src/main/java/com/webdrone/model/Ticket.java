@@ -13,6 +13,7 @@ import javax.persistence.TemporalType;
 
 import org.joda.time.DateTime;
 
+import com.webdrone.assembla.dto.CustomFieldAssemblaDto;
 import com.webdrone.assembla.dto.TicketAssemblaDto;
 
 @Entity
@@ -138,6 +139,9 @@ public class Ticket extends RemoteEntity {
 		dto.setTotalWorkingHours(this.totalWorkingHours);
 		dto.setUpdatedAt(new DateTime(this.getRemotelyUpdated()));
 		dto.setWorkingHours(this.workingHours);
+		CustomFieldAssemblaDto customFieldDto = new CustomFieldAssemblaDto();
+		customFieldDto.setType(this.getWorkflow() != null ? this.getWorkflow().getName() : "");
+		dto.setCustomFields(customFieldDto);
 
 		return dto;
 	}

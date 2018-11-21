@@ -171,11 +171,12 @@ class NotificationList extends React.Component{
   }
 
   loadNotification(notificationId){
+    console.log("Notification Id : " + notificationId);
     var thisComp = this;
     var userItem = JSON.parse(localStorage.getItem("userData"));
     var x2js = new X2JS();
 
-    console.log("loadNotification");
+
     $.ajax({
       type: "GET",
       url: "rest/notification/details?notification_id=" + notificationId,
@@ -185,9 +186,8 @@ class NotificationList extends React.Component{
       },
       dataType: "text",
       success : function(data) {
-        console.log("loadNotification success");
         var ticketJson = x2js.xml_str2json(data);
-        var ticketObj = ticketJson.ticket;
+        var ticketObj = ticketJson["ticket-notification"];
         thisComp.setState({
           modalDetails : ticketObj
         });
@@ -200,7 +200,7 @@ class NotificationList extends React.Component{
 
   render(){
     var notificationList = this.state.notifications.map((notification, i) =>(
-      <div class={notification.verified == "true" ? "card bg-light mb-3" : "card bg-info text-white"  } style={{ marginTop: "5px", marginRight : "5px"}} >
+      <div class={notification.verified == "true" ? "card bg-light" : "card bg-info text-white"} style={{ marginTop: "5px", marginRight : "5px"}} >
         <div class="card-body">
           <div class="row">
             <div class="col">
@@ -274,11 +274,41 @@ class NotificationList extends React.Component{
       );
 
     var priorityLabel = new Map();
-    priorityLabel.set(1, "Highest");
-    priorityLabel.set(2, "High");
-    priorityLabel.set(3, "Normal");
-    priorityLabel.set(4, "Low");
-    priorityLabel.set(5, "Lowest");
+    priorityLabel.set("1", "Highest");
+    priorityLabel.set("2", "High");
+    priorityLabel.set("3", "Normal");
+    priorityLabel.set("4", "Low");
+    priorityLabel.set("5", "Lowest");
+
+    var notificationChanges = [];
+    if(this.state.modalDetails != null){
+
+      if(this.state.modalDetails["notification-changes"]["notification-change"] instanceof Array) {
+        var notifications = this.state.modalDetails["notification-changes"]["notification-change"].map(obj => obj);
+        notificationChanges = notifications;
+      }else if(this.state.modalDetails["notification-changes"]["notification-change"] instanceof Object){
+        var notificationObj = this.state.modalDetails["notification-changes"]["notification-change"];
+        var notificationArray = [];
+        notificationChanges.push(notificationObj);
+      }
+    }
+
+    var ticketChangeContent = notificationChanges.length > 0 ?(notificationChanges.map((tc, i) =>(
+      <tr id={tc["violation-message"] != "" ? "error" + i : i} className={tc["violation-message"] != "" ? "table-danger" : ""}>
+        <td>{tc != null ? tc["field-name"] : ""} :</td>
+        <td>{tc != null ? tc["origin-state"] : ""}</td>
+        <td><span class="oi oi-arrow-right" /></td>
+        <td>{tc != null ? tc["target-state"] : ""}</td>
+        <td>{tc != null ? tc["violation-message"] : ""}</td>
+      </tr>
+    ))) : "";
+    var ticketChanges = (
+      <table class="table">
+        <tbody>
+          {ticketChangeContent}
+        </tbody>
+      </table>
+    );
 
     return (
       <div class="col-md-4">
@@ -367,21 +397,38 @@ class NotificationList extends React.Component{
           </ul>
         </nav>
         <div class="modal" id="ticketDetailsModal">
-          <div class="modal-dialog">
+          <div class="modal-dialog modal-lg">
             <div class="modal-content">
               <div class="modal-header">
                 <h4 class="modal-title">Ticket #{this.state.modalDetails != null ? this.state.modalDetails.number : ""}</h4>
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
               </div>
               <div class="modal-body">
-                <div class="row">
-                  Description : {this.state.modalDetails != null ? this.state.modalDetails.description : ""}
+                <div class="card">
+                  <div class="card-body">
+                    <table class="table">
+                      <tbody>
+                        <tr>
+                          <th scope="row">Description</th>
+                          <td>{this.state.modalDetails != null ? this.state.modalDetails.description : ""}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Summary</th>
+                          <td>{this.state.modalDetails != null ? this.state.modalDetails.summary : ""}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Priority</th>
+                          <td>{this.state.modalDetails != null ? priorityLabel.get(this.state.modalDetails.priority) : ""}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div class="row">
-                  Summary : {this.state.modalDetails != null ? this.state.modalDetails.summary : ""}
-                </div>
-                <div class="row">
-                  Priority : {this.state.modalDetails != null ? priorityLabel.get(this.state.modalDetails.priority) : ""}
+                <div class="card" style={{ marginTop: "5px"}}>
+                  <div class="card-body">
+                    <h6>Ticket Comments</h6>
+                    {ticketChanges}
+                  </div>
                 </div>
               </div>
               <div class="modal-footer">

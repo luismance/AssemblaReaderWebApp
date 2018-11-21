@@ -23,9 +23,11 @@ import com.webdrone.assembla.dto.TicketChangesDto;
 import com.webdrone.assembla.dto.TicketChangesListDto;
 import com.webdrone.assembla.dto.TicketListAssemblaDto;
 import com.webdrone.job.TicketJobService;
+import com.webdrone.model.Notification;
 import com.webdrone.model.Space;
 import com.webdrone.model.Ticket;
 import com.webdrone.model.WorkflowTransitionInstance;
+import com.webdrone.service.NotificationService;
 import com.webdrone.service.SpaceService;
 import com.webdrone.service.TicketService;
 import com.webdrone.service.UserService;
@@ -49,6 +51,9 @@ public class TicketRestService {
 
 	@Inject
 	private WorkflowTransitionInstanceService workflowTranstionInstanceService;
+
+	@Inject
+	private NotificationService notificationService;
 
 	@GET
 	@Path("/list")
@@ -196,7 +201,10 @@ public class TicketRestService {
 				ticketChangesDto.setTicketId(wti.getTicket().getExternalRefId());
 				ticketChangesDto.setUpdatedAt(new DateTime(wti.getRemotelyUpdated()));
 				ticketChangesDto.setViolationCode(wti.isHasViolation() ? wti.getWorkflowTransition().getErrorCode() : "");
-				ticketChangesDto.setViolationMessage(wti.isHasViolation() ? wti.getWorkflowTransition().getErrorMessage() : "");
+
+				Notification notif = notificationService.getByWorkflowTransitionInstance(wti.getId());
+				
+				ticketChangesDto.setViolationMessage(wti.isHasViolation() ? (notif != null ? notif.getMessage() : "Error") : "");
 				ticketChangesDtoList.add(ticketChangesDto);
 			}
 			ticketChangesList.setTicketChanges(ticketChangesDtoList);

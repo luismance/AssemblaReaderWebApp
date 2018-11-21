@@ -10,6 +10,7 @@ import javax.persistence.TypedQuery;
 
 import com.webdrone.model.Notification;
 import com.webdrone.model.Space;
+import com.webdrone.model.Ticket;
 
 @Stateless
 public class NotificationService extends BaseService<Notification> {
@@ -59,6 +60,15 @@ public class NotificationService extends BaseService<Notification> {
 
 	public long getNotificationCount(Set<Space> spaces, String spaceId, String violationType, String verifyFilter) {
 		return getNotificationCount(getEntityManager(), spaces, spaceId, violationType, verifyFilter);
+	}
+
+	public Notification getByWorkflowTransitionInstance(long workflowTransitionId) {
+
+		List<Notification> resultList = getEntityManager()
+				.createQuery("SELECT n FROM " + Notification.class.getSimpleName() + " n WHERE n.workflowTransitionInstance.id = " + workflowTransitionId, Notification.class).getResultList();
+		Notification result = resultList != null && resultList.size() > 0 ? resultList.get(0) : null;
+		return result;
+
 	}
 
 	public long getNotificationCount(EntityManager em, Set<Space> spaces, String spaceId, String violationType, String verifyFilter) {
