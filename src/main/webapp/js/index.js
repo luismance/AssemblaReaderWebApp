@@ -95,32 +95,41 @@ class TicketItem extends React.Component {
         return "";
       } else {
         var formattedTicketChanges = ticketChange["ticket-changes"].replace("--- ", "");
-        var ticketChangesHtml=document.createElement("p");
-        var finalTicketChanges="";
-        var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
-        for (var i = 1; i < formattedTicketChangesArray.length; i++) {
-          var ticketCommentItem = formattedTicketChangesArray[i].split("- ");
-          var tcProp = ticketCommentItem[0].replace("_id", "").replace("_", " ");
-          var tcPrevValue = ticketCommentItem[1];
-          var tcNewValue = ticketCommentItem[2];
-          finalTicketChanges += tcProp + " : " + tcPrevValue + "=>" +tcNewValue;
-          if (i < formattedTicketChangesArray.length) {
-            finalTicketChanges += "\n";
-          }
-        }
-
         var updatedAtDate = new Date(ticketChange["updated-at"]);
+        var formattedTicketChangesArray = formattedTicketChanges.split("- - ");
+        var ticketChangesHtml= formattedTicketChangesArray.map((tc, i) =>{
+          if(i > 0){
+            var ticketCommentItem = tc.split("- ");
+            var tcProp = ticketCommentItem[0].replace("_id", "").replace("_", " ");
+            var tcPrevValue = ticketCommentItem[1];
+            var tcNewValue = ticketCommentItem[2];
+
+            return(
+              <tr>
+                <td width="15%">{updatedAtDate.toLocaleString("en-US")}</td>
+                <td width="15%">{tcProp} :</td>
+                <td width="25%">{tcPrevValue}</td>
+                <td width="5%"><span class="oi oi-arrow-right" /></td>
+                <td width="25%">{tcNewValue}</td>
+                <td width="15%">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</td>
+              </tr>
+            )
+          }
+        });
+
         return (
           <a href="#" className={"list-group-item " + (hasViolation == "true" ? "list-group-item-danger" : "")} style={{ marginLeft: "25px"  }}>
-            {finalTicketChanges}<span class="badge badge-danger">{(hasViolation == "true" ? ticketChange["violation-message"] : "")}</span>{updatedAtDate.toLocaleString("en-US")}
+            <table style={{width: "100%"}}>
+              <tbody>
+                {ticketChangesHtml}
+              </tbody>
+            </table>
           </a>
         );
       }
     });
 
     ticketChanges = ticketChangesArrayUI;
-
-    var ticketChangesFull = <ul className="list-group">{ticketChanges}</ul>;
 
     var priorityMessage = "";
     if(this.props.ticketObj["priority"] == 1){
@@ -161,7 +170,11 @@ class TicketItem extends React.Component {
           </div>
         </a>
         <div class="panel-collapse collapse" id={"collapse" + this.props.number}>
-          <div class="panel-body">{ticketChangesFull}</div>
+          <div class="panel-body">
+            <ul className="list-group">
+              {ticketChanges}
+            </ul>
+          </div>
         </div>
       </div>
     );

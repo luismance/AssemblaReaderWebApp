@@ -16,15 +16,23 @@ public class WorkflowTransitionInstanceService extends BaseService<WorkflowTrans
 	}
 
 	public List<WorkflowTransitionInstance> getWorkflowTransitionInstanceBySpaceAndTicket(EntityManager em, String spaceId, String ticketNumber) {
-		TypedQuery<WorkflowTransitionInstance> query = em.createQuery(
-				"SELECT wti FROM " + WorkflowTransitionInstance.class.getSimpleName() + " wti WHERE wti.ticket.space.externalRefId = '" + spaceId + "' AND wti.ticket.ticketNumber = " + ticketNumber + " ORDER BY wti.remotelyCreated ASC",
-				WorkflowTransitionInstance.class);
+		TypedQuery<WorkflowTransitionInstance> query = em.createQuery("SELECT wti FROM " + WorkflowTransitionInstance.class.getSimpleName() + " wti WHERE wti.ticket.space.externalRefId = '" + spaceId
+				+ "' AND wti.ticket.ticketNumber = " + ticketNumber + " ORDER BY wti.remotelyCreated ASC", WorkflowTransitionInstance.class);
 
 		return query.getResultList();
 	}
-	
+
+	public List<WorkflowTransitionInstance> getWorkflowTransitionInstanceByExternalRefAndTransition(EntityManager em, String externalRefId, String originState, String targetState) {
+		TypedQuery<WorkflowTransitionInstance> query = em.createQuery("SELECT wti FROM " + WorkflowTransitionInstance.class.getSimpleName() + " wti WHERE wti.externalRefId = '" + externalRefId + "'",
+				WorkflowTransitionInstance.class);
+
+		List<WorkflowTransitionInstance> result = query.getResultList();
+		return result;
+	}
+
 	public long getTicketChangesCountBySpace(String spaceId) {
 
-		return Long.parseLong(getEntityManager().createQuery("SELECT COUNT(wti.id) FROM " + WorkflowTransitionInstance.class.getSimpleName() + " wti WHERE wti.space.externalRefId = '" + spaceId + "'").getSingleResult().toString());
+		return Long.parseLong(getEntityManager().createQuery("SELECT COUNT(wti.id) FROM " + WorkflowTransitionInstance.class.getSimpleName() + " wti WHERE wti.space.externalRefId = '" + spaceId + "'")
+				.getSingleResult().toString());
 	}
 }

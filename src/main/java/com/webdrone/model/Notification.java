@@ -37,6 +37,10 @@ public class Notification extends BaseModel {
 	@Column(name = "IS_VERIFIED")
 	private boolean verified = false;
 
+	@ManyToOne(optional = false)
+	@JoinColumn(name = "CAUSED_BY_ID", nullable = false)
+	private User causedBy;
+
 	public Notification() {
 		super();
 	}
@@ -95,6 +99,14 @@ public class Notification extends BaseModel {
 
 	public void setVerified(boolean verified) {
 		this.verified = verified;
+	}
+
+	public User getCausedBy() {
+		return causedBy;
+	}
+
+	public void setCausedBy(User causedBy) {
+		this.causedBy = causedBy;
 	}
 
 }

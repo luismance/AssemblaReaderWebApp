@@ -122,14 +122,23 @@ public class NotificationRestService {
 		String[] priorityLabel = { "Highest", "High", "Normal", "Low", "Lowest" };
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("date_updated;violation_type;ticket_number;milestone;priority;user;ticket_type").append(System.lineSeparator());
+		sb.append("date_updated;violation_type;ticket_number;milestone;priority;user;ticket_type;cause_of_violation").append(System.lineSeparator());
 		for (Notification notification : notifications) {
-			sb.append(notification.getDateCreated()).append(";");
+			sb.append(notification.getTicket().getRemotelyUpdated()).append(";");
 			sb.append(notification.getViolationType()).append(";");
 			sb.append(notification.getTicket().getTicketNumber()).append(";");
 			sb.append(notification.getTicket().getMilestone() != null ? notification.getTicket().getMilestone().getTitle() : "").append(";");
 			sb.append(priorityLabel[notification.getTicket().getPriorityTypeId() - 1]).append(";");
-			sb.append(notification.getWorkflowTransitionInstance().getWorkflowTransition().getWorkflow().getName()).append(System.lineSeparator());
+			sb.append(notification.getCausedBy().getUsername()).append(";");
+			sb.append(notification.getWorkflowTransitionInstance().getWorkflowTransition().getWorkflow().getName()).append(";");
+
+			if (notification.getViolationType().equals("Workflow")) {
+				sb.append(notification.getWorkflowTransitionInstance().getOriginState().replace(System.lineSeparator(), "")).append("->")
+						.append(notification.getWorkflowTransitionInstance().getTargetState().split(":")[1].replace(System.lineSeparator(), "")).append(System.lineSeparator());
+			} else if (notification.getViolationType().equals("SLA")) {
+				sb.append(notification.getMessage()).append(System.lineSeparator());
+			}
+
 		}
 
 		return Response.status(200).entity(sb.toString()).build();

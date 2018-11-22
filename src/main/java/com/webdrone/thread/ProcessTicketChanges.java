@@ -2,11 +2,9 @@ package com.webdrone.thread;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.ejb.Stateless;
@@ -17,8 +15,6 @@ import javax.transaction.NotSupportedException;
 import javax.transaction.RollbackException;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
-
-import org.joda.time.DateTime;
 
 import com.webdrone.assembla.dto.TicketChangesDto;
 import com.webdrone.assembla.dto.TicketChangesListDto;
@@ -96,10 +92,12 @@ public class ProcessTicketChanges {
 							int currentWorkflowIndex = 0;
 
 							long lastDateUpdate = ticket.getDateCreated().getTime();
+							User lastUpdater = ticket.getReporter();
 							String violationType = "";
 							System.out.println("Processing " + ticket.getTicketNumber());
 							for (TicketChangesDto ticketChanges : ticketChangesReversed) {
 								if (ticketChanges.getTicketChanges().contains("- - ")) {
+									User causedBy = lastUpdater;
 									String[] fields = ticketChanges.getTicketChanges().replace("---\n", "").split("- - ");
 
 									for (int i = 1; i < fields.length; i++) {
@@ -114,7 +112,23 @@ public class ProcessTicketChanges {
 										originState.append(fieldName).append(":").append(previousValue).append(System.getProperty("line.separator"));
 										targetState.append(fieldName).append(":").append(newValue).append(System.getProperty("line.separator"));
 
-										WorkflowTransitionInstance wti = new WorkflowTransitionInstance();
+										List<WorkflowTransitionInstance> wtiList = workflowTransitionInstanceService.getWorkflowTransitionInstanceByExternalRefAndTransition(entityManager,
+												ticketChanges.getId(), originState.toString(), targetState.toString());
+
+										WorkflowTransitionInstance wti = null;
+
+										if (wtiList.size() > 0) {
+											for (WorkflowTransitionInstance wtInstance : wtiList) {
+												if (wtInstance.getOriginState().equals(originState.toString()) && wtInstance.getTargetState().equals(targetState.toString())) {
+													wti = wtInstance;
+													break;
+												}
+											}
+										}
+
+										if (wti == null) {
+											wti = new WorkflowTransitionInstance();
+										}
 
 										wti.setExternalRefId(ticketChanges.getId());
 										wti.setMessage(ticketChanges.getComment());
@@ -202,22 +216,22 @@ public class ProcessTicketChanges {
 														- ((monthsDelay > 0 ? monthsDelay * 43200 : 0) + (daysDelay > 0 ? daysDelay * 1440 : 0) + (hoursDelay > 0 ? hoursDelay * 60 : 0));
 												if (ticketDelay > workflowTransitions.get(correctIndex).getMaxDelay()) {
 													wti.setHasViolation(true);
-													notifMessage = "Delayed by " + (monthsDelay > 0 ? (monthsDelay + " months, ") : "") + (daysDelay > 0 ? (daysDelay + " days, ") : "")
-															+ (hoursDelay > 0 ? (hoursDelay + " hours, ") : "") + minsDelay + " minutes.";
+													notifMessage = "Delayed by " + (monthsDelay > 0 ? (monthsDelay + " month(s), ") : "") + (daysDelay > 0 ? (daysDelay + " day(s), ") : "")
+															+ (hoursDelay > 0 ? (hoursDelay + " hour(s), ") : "") + minsDelay + " minute(s).";
 													System.out.println("Notif Message : " + notifMessage);
 													violationType = "SLA";
+													causedBy = lastUpdater;
 												}
 
 												workflowTransitions = workflowTransitions.get(correctIndex).getWorkflowTransitions();
 												lastDateUpdate = ticketChanges.getUpdatedAt().toDate().getTime();
-
 											}
 
 											if (wrongCounter == workflowTransitions.size() && workflowTransitions.size() > 0) {
 												System.out.println("[" + ticket.getTicketNumber() + "," + ticketChanges.getId() + "]EVAL RESULT : " + evalResult);
 												wti.setHasViolation(true);
 												wti.setWorkflowTransition(workflowTransitions.get(0));
-												
+
 												fieldMap = new HashMap<String, String>();
 												fieldMap.put("ticket_created", ticket.getRemotelyCreated().getTime() / 60000 + "");
 												fieldMap.put("ticket_priority", ticket.getPriorityTypeId() + "");
@@ -225,6 +239,7 @@ public class ProcessTicketChanges {
 
 												workflowTransitions = workflowTransitions.get(0).getWorkflowTransitions();
 												lastDateUpdate = ticketChanges.getUpdatedAt().toDate().getTime();
+												causedBy = (User) userService.findByExternalRefId(entityManager, User.class, ticketChanges.getUserId());
 											}
 
 										} else {
@@ -256,8 +271,12 @@ public class ProcessTicketChanges {
 												notification.setViolationType(violationType);
 											}
 
+											notification.setCausedBy(causedBy);
+
 											notificationService.threadCreate(utx, entityManager, notification);
 										}
+
+										lastUpdater = (User) userService.findByExternalRefId(entityManager, User.class, ticketChanges.getUserId());
 									}
 
 								} else {

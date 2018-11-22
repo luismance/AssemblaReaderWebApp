@@ -20,10 +20,10 @@
 		<class>com.webdrone.model.MaxDelay</class>
 
 		<properties>
-			<property name="javax.persistence.schema-generation.database.action" value="drop-and-create" />
+			<property name="javax.persistence.schema-generation.database.action" value="create" />
 			<property name="hibernate.archive.autodetection" value="class" />
 			<property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5InnoDBDialect" />
-			<property name="hibernate.hbm2ddl.auto" value="create-drop" />
+			<property name="hibernate.hbm2ddl.auto" value="create" />
 			<property name="hibernate.format_sql" value="true" />
 			<property name="connection.url" value="jdbc:mariadb://localhost:3306/webdrone_assembla" />
 		</properties>

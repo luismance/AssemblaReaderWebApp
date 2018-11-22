@@ -124,6 +124,9 @@ class NotificationList extends React.Component{
     var userItem = JSON.parse(localStorage.getItem("userData"));
     var x2js = new X2JS();
 
+    var x = document.getElementById("loadinggif");
+    x.style.display = "block";
+
     console.log("Exporting notifications");
     $.ajax({
       type: "GET",
@@ -139,6 +142,8 @@ class NotificationList extends React.Component{
         hiddenElement.target = '_blank';
         hiddenElement.download = 'notifications.csv';
         hiddenElement.click();
+        var x = document.getElementById("loadinggif");
+        x.style.display = "none";
       },
       error: function(data) {
         console.log("Error : " + JSON.stringify(data));
@@ -295,6 +300,7 @@ class NotificationList extends React.Component{
 
     var ticketChangeContent = notificationChanges.length > 0 ?(notificationChanges.map((tc, i) =>(
       <tr id={tc["violation-message"] != "" ? "error" + i : i} className={tc["violation-message"] != "" ? "table-danger" : ""}>
+        <td>{tc != null ? (new Date(tc["updated-at"]).toLocaleString("en-US")) : ""}</td>
         <td>{tc != null ? tc["field-name"] : ""} :</td>
         <td>{tc != null ? tc["origin-state"] : ""}</td>
         <td><span class="oi oi-arrow-right" /></td>
@@ -337,6 +343,7 @@ class NotificationList extends React.Component{
               <button className="btn btn-secondary" type="button" id="exportCsv" onClick={this.exportNotifications.bind(this)} style={{ marginLeft: "10px", marginTop: "10px" }}>
                 Export as CSV
               </button>
+              <img  id="loadinggif" src="images/loading.gif" style={{ display : "none"}}/>
             </div>
           </div>
           <div class="row">
